@@ -31,19 +31,45 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+import csv
+import StringIO
+
 from univention.lib.i18n import Translation
-from univention.management.console.modules.sanitizers import StringSanitizer, StringSanitizer as DNSanitizer, DictSanitizer, ListSanitizer
-from univention.management.console.modules.decorators import sanitize, simple_response
+from univention.management.console.modules.sanitizers import StringSanitizer
+from univention.management.console.modules.decorators import sanitize
 
-import univention.admin.uexceptions as udm_exceptions
 
-from ucsschool.lib.schoolldap import LDAP_Connection, SchoolBaseModule, LDAP_Filter, USER_READ, USER_WRITE, SchoolSanitizer
+from ucsschool.lib.schoolldap import LDAP_Connection, SchoolBaseModule, SchoolSanitizer
 
 _ = Translation('ucs-school-umc-lists').translate
 
 
 class Instance(SchoolBaseModule):
 
-	@simple_response
-	def csv_list(self):
-		return "foobar"
+	@sanitize(
+		school=SchoolSanitizer(required=True),
+		class_=StringSanitizer(required=True, allow_none=False),
+	)
+	@LDAP_Connection()
+	def csv_list(self, request, ldap_user_read=None, ldap_position=None):
+		school = request.options['school']
+		class_ = request.options['class_']
+		users = []
+		for user in self._users(ldap_user_read, school, group=class_, user_type='student'):
+			users.append({
+				'username': user.get('username'),
+				'vorname': user.get('firstname'),
+				'nachname': user.get('lastname'),
+				'klasse': class_,
+			})
+		csvfile = StringIO.StringIO()
+		fieldnames = ['vorname', 'nachname', 'klasse', 'username']
+		writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+		writer.writeheader()
+		for user in users:
+			writer.writerow(user)
+		csvfile.seek(0)
+		csv_data = csvfile.read()
+		csvfile.close()
+		result = {'name': school + ';' + class_ + '.csv', 'csv': csv_data}
+		self.finished(request.id, result)

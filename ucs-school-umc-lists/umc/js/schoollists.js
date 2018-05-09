@@ -47,32 +47,38 @@ define([
 	"umc/widgets/TextBox",
 	"umc/widgets/ComboBox",
 	"umc/widgets/CheckBox",
+	"umc/widgets/Button",
 	"umc/widgets/Text",
 	"umc/widgets/ContainerWidget",
 	"umc/widgets/ProgressInfo",
 	"umc/widgets/SearchForm",
-	"umc/i18n!umc/modules/schoolusers"
+	"umc/i18n!umc/modules/schoollists"
 ], function(declare, lang, array, on, locale, Deferred, Dialog, entities, dialog, tools, Module,
-            Grid, Page, Form, SearchBox, TextBox, ComboBox, CheckBox, Text, ContainerWidget, ProgressInfo, SearchForm, _) {
+            Grid, Page, Form, SearchBox, TextBox, ComboBox, CheckBox, Button, Text, ContainerWidget, ProgressInfo, SearchForm, _) {
 
-	return declare("umc.modules.schoolusers", [ Module ], {
+	return declare("umc.modules.schoollists", [ Module ], {
 		idProperty: 'id',
-		_grid: null,
 		_searchPage: null,
-		_progressInfo: null,
-		_initialChangeDone: false,
+		openDownload: function(result) {
+			var blob = new Blob([result.result.csv], {type: 'application/octet-binary'});
+			var url = URL.createObjectURL(blob);
+			if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+				// IE doesn't open objectURLs directly
+				window.navigator.msSaveOrOpenBlob(blob, result.result.name);
+				return;
+			}
 
-		uninitialize: function() {
-			this.inherited(arguments);
-
-			this._progressInfo.destroyRecursive();
+			var link = document.createElement('a');
+			link.style = "display: none";
+			document.body.appendChild(link);
+			link.href = url;
+			link.download = result.result.name;
+			link.click();
+			link.remove();
 		},
 
 		buildRendering: function() {
 			this.inherited(arguments);
-
-			this.standbyOpacity = 1;
-			this.standby(true);
 
 			this._searchPage = new Page({
 				fullWidth: true,
@@ -91,10 +97,10 @@ define([
 				size: 'TwoThirds',
 				required: true,
 				umcpCommand: lang.hitch(this, 'umcpCommand'),
-				dynamicValues: 'schoollists/schools'
+				dynamicValues: 'schoollists/schools',
 			}, {
 				type: ComboBox,
-				name: 'class',
+				name: 'class_',
 				description: _('Select a class or workgroup.'),
 				label: _('Class or workgroup'),
 				staticValues: [
@@ -102,11 +108,19 @@ define([
 				],
 				dynamicValues: 'schoollists/groups',
 				umcpCommand: lang.hitch(this, 'umcpCommand'),
-				depends: 'school'
+				depends: 'school',
+			}, {
+				type: Button,
+				name: 'csv',
+				description: _('Download a list of class members'),
+				label: _('CSV'),
+				onClick: lang.hitch(this, function() {
+					this._searchForm.submit();
+				}),
 			}];
 
 			var layout = [
-				[ 'school', 'class' ]
+				[ 'school', 'class_', 'csv' ]
 			];
 
 			this._searchForm = new SearchForm({
@@ -115,7 +129,10 @@ define([
 				widgets: widgets,
 				layout: layout,
 				onSearch: lang.hitch(this, function(values) {
-					this._grid.filter(values);
+					this.umcpCommand('schoollists/generatecsvlist', {
+						school: values.school,
+						class_: values.class_,
+					}).then(lang.hitch(this, 'openDownload'));
 				})
 			});
 
