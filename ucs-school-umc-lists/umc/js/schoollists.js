@@ -60,11 +60,11 @@ define([
 		idProperty: 'id',
 		_searchPage: null,
 		openDownload: function(result) {
-			var blob = new Blob([result.result.csv], {type: 'application/octet-binary'});
+			var blob = new Blob([result.result.csv], {type: 'text/csv'});
 			var url = URL.createObjectURL(blob);
 			if (window.navigator && window.navigator.msSaveOrOpenBlob) {
 				// IE doesn't open objectURLs directly
-				window.navigator.msSaveOrOpenBlob(blob, result.result.name);
+				window.navigator.msSaveOrOpenBlob(blob, result.result.filename);
 				return;
 			}
 
@@ -72,13 +72,15 @@ define([
 			link.style = "display: none";
 			document.body.appendChild(link);
 			link.href = url;
-			link.download = result.result.name;
+			link.download = result.result.filename;
 			link.click();
 			link.remove();
 		},
 
 		buildRendering: function() {
 			this.inherited(arguments);
+
+			this.standby(true);
 
 			this._searchPage = new Page({
 				fullWidth: true,
@@ -100,27 +102,32 @@ define([
 				dynamicValues: 'schoollists/schools',
 			}, {
 				type: ComboBox,
-				name: 'class_',
+				name: 'group',
+				required: true,
 				description: _('Select a class or workgroup.'),
 				label: _('Class or workgroup'),
-				staticValues: [
-					{ 'id' : 'None', 'label' : _('All classes and workgroups') }
-				],
 				dynamicValues: 'schoollists/groups',
 				umcpCommand: lang.hitch(this, 'umcpCommand'),
 				depends: 'school',
+				onValuesLoaded: function() {
+					this.set('value', null);
+				},
 			}, {
 				type: Button,
 				name: 'csv',
 				description: _('Download a list of class members'),
 				label: _('CSV'),
 				onClick: lang.hitch(this, function() {
-					this._searchForm.submit();
+					if (this._searchForm.validate()) {
+						this._searchForm.submit();
+					} else {
+						dialog.alert(_('Please select a class or workgroup.'));
+					}
 				}),
 			}];
 
 			var layout = [
-				[ 'school', 'class_', 'csv' ]
+				[ 'school', 'group', 'csv' ]
 			];
 
 			this._searchForm = new SearchForm({
@@ -129,14 +136,15 @@ define([
 				widgets: widgets,
 				layout: layout,
 				onSearch: lang.hitch(this, function(values) {
-					this.umcpCommand('schoollists/generatecsvlist', {
+					this.umcpCommand('schoollists/csvlist', {
 						school: values.school,
-						class_: values.class_,
+						group: values.group,
 					}).then(lang.hitch(this, 'openDownload'));
 				})
 			});
 
 			this._searchPage.addChild(this._searchForm);
+			this._searchForm.ready().then(lang.hitch(this, 'standby', false));
 
 		}
 	});

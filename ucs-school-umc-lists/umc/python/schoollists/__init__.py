@@ -33,13 +33,14 @@
 
 import csv
 import StringIO
+from ldap.dn import explode_dn
 
 from univention.lib.i18n import Translation
-from univention.management.console.modules.sanitizers import StringSanitizer
+from univention.management.console.modules.sanitizers import DNSanitizer
 from univention.management.console.modules.decorators import sanitize
 
-
 from ucsschool.lib.schoolldap import LDAP_Connection, SchoolBaseModule, SchoolSanitizer
+from ucsschool.lib.models.user import User
 
 _ = Translation('ucs-school-umc-lists').translate
 
@@ -48,28 +49,30 @@ class Instance(SchoolBaseModule):
 
 	@sanitize(
 		school=SchoolSanitizer(required=True),
-		class_=StringSanitizer(required=True, allow_none=False),
+		group=DNSanitizer(required=True, minimum=1),
 	)
 	@LDAP_Connection()
 	def csv_list(self, request, ldap_user_read=None, ldap_position=None):
 		school = request.options['school']
-		class_ = request.options['class_']
-		users = []
-		for user in self._users(ldap_user_read, school, group=class_, user_type='student'):
-			users.append({
-				'username': user.get('username'),
-				'vorname': user.get('firstname'),
-				'nachname': user.get('lastname'),
-				'klasse': class_,
-			})
+		group = request.options['group']
 		csvfile = StringIO.StringIO()
-		fieldnames = ['vorname', 'nachname', 'klasse', 'username']
-		writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-		writer.writeheader()
-		for user in users:
-			writer.writerow(user)
+		fieldnames = [_('firstname'), _('lastname'), _('class'), _('username')]
+		writer = csv.writer(csvfile)
+		writer.writerow(fieldnames)
+		for student in self.students(ldap_user_read, school, group):
+			class_display_name = student.school_classes[school][0].split('-', 1)[1]
+			writer.writerow([
+				student.firstname,
+				student.lastname,
+				class_display_name,
+				student.name,
+			])
 		csvfile.seek(0)
-		csv_data = csvfile.read()
+		filename = explode_dn(group)[0].split('=')[1] + '.csv'
+		result = {'filename': filename, 'csv': csvfile.read()}
 		csvfile.close()
-		result = {'name': school + ';' + class_ + '.csv', 'csv': csv_data}
 		self.finished(request.id, result)
+
+	def students(self, lo, school, group):
+		for user in self._users(lo, school, group=group, user_type='student'):
+			yield User.from_udm_obj(user, school, lo)
