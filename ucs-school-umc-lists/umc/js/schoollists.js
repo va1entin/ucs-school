@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2018 Univention GmbH
+ * Copyright 2018 Univention GmbH
  *
  * http://www.univention.de/
  *
@@ -115,8 +115,8 @@ define([
 			}, {
 				type: Button,
 				name: 'csv',
-				description: _('Download a list of class members'),
-				label: _('CSV'),
+				description: _('Download a list of group members'),
+				label: 'CSV',
 				onClick: lang.hitch(this, function() {
 					if (this._searchForm.validate()) {
 						this._searchForm.submit();
