@@ -12,15 +12,11 @@ XS-Python-Version: 2.6, 2.7
 
 Package: ucs-school-umc-lists
 Architecture: all
-Replaces: ucs-school-umc-roomadmin
-Breaks: ucs-school-umc-roomadmin (<< 8.0.0)
 Depends: ${misc:Depends},
  univention-management-console,
- univention-config-registry,
  ucs-school-umc-common,
  python-ucs-school,
  shell-ucs-school,
- python-univention-directory-manager
 Description: UMC module to generate csv lists
  This package provides a Univention Management Console module that allows to
  administrate school rooms and their associated computers.
