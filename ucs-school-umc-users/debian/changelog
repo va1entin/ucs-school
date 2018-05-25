@@ -1,3 +1,9 @@
+ucs-school-umc-users (14.0.2-4) unstable; urgency=medium
+
+  * Bug #42212: Change display of expiration dates
+
+ -- Ole Schwiegert <schwiegert@univention.de>  Fri, 25 May 2018 11:44:42 +0100
+
 ucs-school-umc-users (14.0.2-3) unstable; urgency=medium
 
   * Bug #45601: Include missing script in postinst
