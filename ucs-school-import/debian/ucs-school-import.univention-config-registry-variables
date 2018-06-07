@@ -159,3 +159,9 @@ Description[de]=Definiert Parameter für das Programm ucs-school-purge-expired-u
 Description[en]=Defines parameters for the ucs-school-purge-expired-users program. If the variable is unset, '--quiet --logfile /var/log/univention/ucs-school-purge-expired-users/ucs-school-purge-expired-users.log' is used.
 Type=str
 Categories=ucsschool-base
+
+[ucsschool/import/generate/share/marktplatz/options]
+Description[de]=Vorgabeoptionen der Freigabe "Marktplatz" (Default: nfs,samba)
+Description[en]=Default options of share "Marktplatz" (default: nfs,samba)
+Type=str
+Categories=ucsschool-base

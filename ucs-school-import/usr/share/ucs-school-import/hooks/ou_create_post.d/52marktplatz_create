@@ -75,13 +75,16 @@ if [ -z "$sharegrp" ] ; then
 fi
 grpuidnumber="$(univention-ldapsearch -LLL "(&(objectclass=univentionGroup)(cn=${sharegrp}))" gidNumber | sed -ne 's/^gidNumber: //p')"
 
+IFS=, read -a shareoptions <<< "$ucsschool_import_generate_share_marktplatz_options"
+
 udm shares/share create --ignore_exists \
 	--position "cn=shares,ou=${ou}${district},${ldap_base}" \
 	--set name=Marktplatz \
 	--set "host=${dcname}" \
 	--set "path=${sharepath}" \
 	--set "directorymode=${sharemode}" \
-	--set "group=${grpuidnumber}"
+	--set "group=${grpuidnumber}" \
+	${shareoptions[@]/#/--option }
 
 echo "$(basename $0): added new share Markplatz for server ${dcname}"
 
