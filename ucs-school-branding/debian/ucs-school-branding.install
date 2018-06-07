@@ -1,2 +1,1 @@
-umc/app/help.de.html usr/share/univention-management-console-frontend/js/umc/app
-umc/app/help.en.html usr/share/univention-management-console-frontend/js/umc/app
+js/hooks/brand_help_menu.js /usr/share/univention-web/js/umc/hooks/
