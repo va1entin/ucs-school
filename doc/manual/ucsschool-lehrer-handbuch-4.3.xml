@@ -1051,5 +1051,82 @@ feedback@univention.de
 		  besonders dann zu beachten, wenn Benutzer in mehreren Gruppen enthalten sind.
 		</para>
 	  </section>
+
+
+		<section id="admindoku:schoolimport">
+		<title>Nutzerdaten importieren</title>
+		<para>
+		  Das Benutzerimport Modul ersetzt den alten CSV Import und ist die grafische Schnittstelle zum neuen HTTP Import.
+			Bevor dieses Modul sinnvoll verwendet werden kann, muss es von einem Administrator konfiguriert und der
+			Schulumgebung angepasst werden.
+		</para>
+		<para>
+			Wird das Modul <guimenu>Benutzerimport</guimenu> zum ersten Mal aus der Management Konsole aus aufgerufen, wird direkt ein
+			neuer Importprozess gestartet. Ansonsten wird eine Übersicht über die bereits durchgeführten und gerade aktiven Importe angzeigt.
+		</para>
+		<para>
+		  <figure id="schoolimport-overview">
+			<title>Auftragsübersicht des Import Moduls</title>
+			<graphic scalefit="1" width="100%" align="center" fileref="illustrations43/schoolimport_overview.png"/>
+		  </figure>
+		</para>
+		<para>
+			Die Liste zeigt alle abgeschlossenen und gerade in der Ausführung befindlichen Importe an.
+			Bei bereits abgeschlossenen Importen können hier außerdem eine Zusammenfassung des Imports und eine Liste mit
+			Passwörtern für die neu generierten Nutzer heruntergeladen werden.
+		</para>
+		<para>
+			Über <guimenu>Neuen Benutzerimport durchführen</guimenu> kann ein neuer Importprozess gestartet werden.
+		</para>
+		<para>
+		  <figure id="schoolimport-roleSelect">
+			<title>Rollenauswahl für Nutzerimport</title>
+			<graphic scalefit="1" width="100%" align="center" fileref="illustrations43/schoolimport_roleSelect.png"/>
+		  </figure>
+		</para>
+		<para>
+			Auf dieser Seite wird die Nutzerrolle ausgewählt, die den neu importierten Nutzern in &ucsUMC; zugeordnet werden soll.
+			Die Vorauswahl liegt dabei auf <literal>student</literal>.
+		</para>
+		<para>
+			Auf der nächsten Seite befindet sich ein Dialog, um die Daten vom lokalen Rechner auszuwählen und für den Import
+			hochzuladen. Dabei wird eine bestimmte Datenstruktur erwartet, die zuvor vom Systemadministrator konfiguriert worden ist.
+		</para>
+		<para>
+		  <figure id="schoolimport-error">
+			<title>Fehlerbenachrichtigung bei fehlgeschlagenem Nutzerimport</title>
+			<graphic scalefit="1" width="100%" align="center" fileref="illustrations43/schoolimport_error.png"/>
+		  </figure>
+		</para>
+		<para>
+			Diese Seite wird angezeigt, wenn die zu importierenden Daten nicht dem erwarteten Format entsprechen.
+			An dieser Stelle sollte ein Administrator benachrichtigt werden, sodass er mit Hilfe der Daten und dem angezeigten
+			Fehlertext die Ursache des fehlgeschlagenen Imports ermitteln kann.
+		</para>
+		<para>
+			Der fehlgeschlagene Import hat keinerlei Auswirkungen auf das laufende System und hat weder neue Nutzer hinzugefügt,
+			noch bestehende Nutzer verändert. Es kann ohne Bedenken normal weitergearbeitet werden ohne erst auf die Antwort
+			eines Administrators warten zu müssen. Es sollte lediglich sichergestellt werden, dass der Fehlertext zur späteren
+			Analyse gespeichert wird.
+		</para>
+		<para>
+			Wenn keine Fehler gefunden worden sind, dann meldet sich die Oberfläche mit der Nachricht, dass die Datenprüfung
+			erfolgreich abgeschlossen worden ist. Mit einem Klick auf <guimenu>Import starten</guimenu> kann der tatsächliche
+			Importprozess angestoßen werden.
+		</para>
+		<para>
+			Nach dem Start des Imports wird man auf die Übersicht zurückgeleitet. Dort befindet sich nun ein neuer Eintrag,
+			der den gerade begonnenen Import repräsentiert. Gut zu erkennen am Status <literal>Gestartet</literal>.
+		</para>
+		<para>
+			Sobald der Prozess abgeschlossen ist, ändert sich der Status auf <literal>Erfolgreich</literal> und die Passwortliste,
+			sowie eine Zusammenfassung des Imports können heruntergeladen werden. Jedoch aktualisiert sich die Seite nicht
+			automatisch. Wenn der Status von Importaufträgen überprüft werden soll, muss über die Option <guimenu>Aktualisieren</guimenu>
+			die Übersicht neu geladen werden.
+		</para>
+		<para>
+			<!-- Misses explanation of summary file.. too big for table though -->
+		</para>
+	  </section>
   </chapter>
 </book>
