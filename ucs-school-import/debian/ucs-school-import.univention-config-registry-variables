@@ -161,7 +161,7 @@ Type=str
 Categories=ucsschool-base
 
 [ucsschool/import/generate/share/marktplatz/options]
-Description[de]=Vorgabeoptionen der Freigabe "Marktplatz" (Default: nfs,samba)
-Description[en]=Default options of share "Marktplatz" (default: nfs,samba)
+Description[de]=Vorgabeoptionen der Freigabe "Marktplatz" (Default: nfs,samba). Jede Kombination von nfs und samba ist ein möglicher Wert und bestimmt über welche Dienste die Freigabe zugänglich ist. Beachte, dass die Liste mit , getrennt wird. Sollte ein leerer String gesetzt werden, wird der Default genutzt.
+Description[en]=Default options of share "Marktplatz" (default: nfs,samba). Every combination of nfs and samba is a possible value and configures over which services the share is reachable. Mind that the lists delimiter is the , symbol. If an empty string is set, the default is used.
 Type=str
 Categories=ucsschool-base
