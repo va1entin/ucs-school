@@ -1124,9 +1124,85 @@ feedback@univention.de
 			automatisch. Wenn der Status von Importaufträgen überprüft werden soll, muss über die Option <guimenu>Aktualisieren</guimenu>
 			die Übersicht neu geladen werden.
 		</para>
-		<para>
-			<!-- Misses explanation of summary file.. too big for table though -->
-		</para>
+		<table id="table:import_report">
+					<title>Import Report Felder</title>
+					<tgroup cols="2">
+						<colspec colnum="1" colname="field" colwidth="1*"/>
+						<colspec colnum="2" colname="description" colwidth="4*"/>
+						<thead>
+							<row>
+								<entry>Spaltenname</entry>
+								<entry>Beschreibung</entry>
+							</row>
+						</thead>
+						<tbody>
+							<row>
+								<entry align="left"><literal>line</literal></entry>
+								<entry>Die Zeile des erstellten Nutzers im originalen Importdokument</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>success</literal></entry>
+								<entry>1 steht für einen erfolgreichen Import, 0 für einen Fehlschlag</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>error</literal></entry>
+								<entry>1 steht für einen vorhandenen Error, 0 für keine Fehler</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>action</literal></entry>
+								<entry>Die Aktion, die für den Nutzer ausgeführt worden ist. Hinzufügen: (A)dd, Editieren: (M)odify oder Löschen: (D)elete</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>role</literal></entry>
+								<entry>Die Nutzerrolle, die dem neu erstellten Nutzer zugewiesen worden ist.</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>username</literal></entry>
+								<entry>Der Nutzername des neuen Benutzers.</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>schools</literal></entry>
+								<entry>Eine Liste der Schulen, mit denen der Benutzer assoziiert wird.</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>firstname</literal></entry>
+								<entry>Der Vorname des neuen Benutzers</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>lastname</literal></entry>
+								<entry>Der Nachname des neuen Benutzers</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>birthday</literal></entry>
+								<entry>Das Geburtsdatum des neuen Benutzers, sollte eines angegeben worden sein.</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>email</literal></entry>
+								<entry>Die primäre Emailadresse des neuen Benutzers</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>disabled</literal></entry>
+								<entry>1 steht dafür, dass der Benutzer nach dem Import zuerst noch deaktiviert ist, 0 steht für einen aktivierten Benutzer.</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>classes</literal></entry>
+								<entry>Eine Liste der Klassen, mit denen der Benutzer assoziiert wird.</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>source_uid</literal></entry>
+								<entry>Die sourceUID des neuen Benutzers</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>record_uid</literal></entry>
+								<entry>Die recordUID des neuen Benutzers</entry>
+							</row>
+							<row>
+								<entry align="left"><literal>error_msg</literal></entry>
+								<entry>Falls error auf 1 steht, kann man hier eine Nachricht finden, die die Art des Fehlers genauer beschreibt.</entry>
+							</row>
+						</tbody>
+					</tgroup>
+				</table>
 	  </section>
   </chapter>
 </book>
