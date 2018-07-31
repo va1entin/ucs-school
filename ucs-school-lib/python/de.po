@@ -54,7 +54,7 @@ msgstr "Pfad für Rechner"
 msgid "Container"
 msgstr "Container"
 
-#: python/schoolldap.py:389
+#: python/school_umc_base.py:208
 msgid ""
 "Could not find any school. You have to create a school before continuing. "
 "Use the \"Schools\" UMC module to create one."
@@ -327,7 +327,7 @@ msgstr ""
 "Der Name wird bereits außerhalb dieser Schule genutzt. Er darf nicht zweimal "
 "vorkommen und muss verändert werden."
 
-#: python/schoolldap.py:163
+#: python/school_umc_base.py:159
 msgid ""
 "The request did not specify any school. You have to create a school before "
 "continuing. Use the \"Schools\" UMC module to create one."
