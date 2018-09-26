@@ -47,7 +47,8 @@ from univention.management.console.log import MODULE
 from univention.management.console.modules import UMC_Error
 from univention.management.console.modules.decorators import sanitize
 from univention.management.console.modules.sanitizers import StringSanitizer, DNSanitizer, ListSanitizer
-from ucsschool.lib.school_umc_base import LDAP_Connection, SchoolBaseModule, ADMIN_WRITE, USER_READ
+from ucsschool.lib.school_umc_ldap_connection import LDAP_Connection, ADMIN_WRITE, USER_READ
+from ucsschool.lib.school_umc_base import SchoolBaseModule
 from ucsschool.lib.models import School, ComputerRoom, Student, ExamStudent, MultipleObjectsError
 from ucsschool.lib.models.utils import logger as lib_logger, add_module_logger_to_schoollib
 from ucsschool.lib.pyhooks import PyHooksLoader

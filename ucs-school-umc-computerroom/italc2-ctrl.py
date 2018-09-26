@@ -44,7 +44,7 @@ sys.path.insert(0, os.path.join(script_dir, 'umc/python/computerroom'))
 sys.path.insert(0, '/usr/share/pyshared/univention/management/console/modules/computerroom')
 
 import italc2
-from ucsschool.lib.school_umc_base import set_credentials
+from ucsschool.lib.school_umc_ldap_connection import set_credentials
 import univention.config_registry as ucr
 
 italcManager = None

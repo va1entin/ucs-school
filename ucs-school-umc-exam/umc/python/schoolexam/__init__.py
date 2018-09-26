@@ -53,7 +53,8 @@ from univention.lib.i18n import Translation
 from univention.lib.umc import Client, ConnectionError, HTTPError
 
 from ucsschool.lib.schoolldap import SchoolSearchBase
-from ucsschool.lib.school_umc_base import LDAP_Connection, SchoolBaseModule, SchoolSanitizer
+from ucsschool.lib.school_umc_ldap_connection import LDAP_Connection
+from ucsschool.lib.school_umc_base import SchoolBaseModule, SchoolSanitizer
 from ucsschool.lib import internetrules
 from ucsschool.lib.schoollessons import SchoolLessons
 from ucsschool.lib.models import ComputerRoom, User
