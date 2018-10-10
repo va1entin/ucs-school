@@ -1,3 +1,9 @@
+ucs-school-metapackage (11.0.2-9) unstable; urgency=medium
+
+  * Bug #47957: Add role packages
+
+ -- Jürn Brodersen <brodersen@univention.de>  Thu, 06 Dec 2018 12:47:24 +0100
+
 ucs-school-metapackage (11.0.2-8) unstable; urgency=medium
 
   * Bug #48186: Fix typo
