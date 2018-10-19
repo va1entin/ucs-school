@@ -36,9 +36,7 @@ from ucsschool.importer.exceptions import UcsSchoolImportSkipImportRecord
 from ucsschool.importer.configuration import Configuration
 from ucsschool.importer.utils.logging import get_logger
 from ucsschool.importer.factory import Factory
-from ucsschool.importer.utils.post_read_pyhook import PostReadPyHook
 from ucsschool.importer.utils.ldap_connection import get_admin_connection, get_readonly_connection
-from ucsschool.lib.pyhooks import PyHooksLoader
 
 try:
 	from typing import Dict, List
@@ -53,8 +51,7 @@ class BaseReader(object):
 	Subclasses must override get_roles(), map() and read().
 	"""
 
-	pyhooks_base_path = "/usr/share/ucs-school-import/pyhooks"
-	_post_read_pyhook_cache = None
+	_post_read_pyhook_cache = {}
 
 	def __init__(self, filename, header_lines=0, **kwargs):
 		"""
@@ -111,11 +108,6 @@ class BaseReader(object):
 		:param input_dict: input data mapped to column names. The input_dict may be changed.
 		:type input_dict: dict[str, str]
 		"""
-		if self._post_read_pyhook_cache is None:
-			path = self.config.get('hooks_dir_pyhook', self.pyhooks_base_path)
-			pyloader = PyHooksLoader(path, PostReadPyHook, self.logger)
-			self._post_read_pyhook_cache = pyloader.get_hook_objects(self.lo)
-
 		func_name = 'entry_read'
 		for func in self._post_read_pyhook_cache.get(func_name, []):
 			self.logger.info("Running %s hook %s for entry %s...", func_name, func, entry_count)

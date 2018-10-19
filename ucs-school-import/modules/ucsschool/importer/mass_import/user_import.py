@@ -73,7 +73,6 @@ class UserImport(object):
 	"""
 
 	pyhooks_base_path = "/usr/share/ucs-school-import/pyhooks"
-	_post_read_pyhook_cache = None
 
 	def __init__(self, dry_run=True):
 		"""
@@ -89,7 +88,9 @@ class UserImport(object):
 		self.logger = get_logger()
 		self.connection, self.position = get_readonly_connection() if dry_run else get_admin_connection()
 		self.factory = Factory()
+		self._post_read_pyhook_cache = self._load_post_read_pyhooks()
 		self.reader = self.factory.make_reader()
+		self.reader._post_read_pyhook_cache = self._post_read_pyhook_cache
 		self.imported_users_len = 0
 
 	def read_input(self):  # type: () -> List[ImportUser]
@@ -130,11 +131,6 @@ class UserImport(object):
 		:param list[ImportUser] imported_users: list of ImportUser objects created from the input records
 		:param list[Exception] errors: list of exceptions that are caught during processing the input records
 		"""
-		if self._post_read_pyhook_cache is None:
-			path = self.config.get('hooks_dir_pyhook', self.pyhooks_base_path)
-			pyloader = PyHooksLoader(path, PostReadPyHook, self.logger)
-			self._post_read_pyhook_cache = pyloader.get_hook_objects(self.connection)
-
 		func_name = 'all_entries_read'
 		for func in self._post_read_pyhook_cache.get(func_name, []):
 			self.logger.info("Running %s hook %s all entries...", func_name, func)
@@ -660,6 +656,11 @@ class UserImport(object):
 
 	def get_result_data(self):  # type: () -> UserImportData
 		return UserImportData(self)
+
+	def _load_post_read_pyhooks(self):
+		path = self.config.get('hooks_dir_pyhook', self.pyhooks_base_path)
+		pyloader = PyHooksLoader(path, PostReadPyHook, self.logger)
+		return pyloader.get_hook_objects(self.connection)
 
 
 class UserImportData(object):
