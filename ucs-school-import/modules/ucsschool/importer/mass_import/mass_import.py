@@ -32,6 +32,7 @@
 Default mass import class.
 """
 
+import sys
 import datetime
 
 from ucsschool.importer.exceptions import UcsSchoolImportError, UcsSchoolImportFatalError
@@ -129,7 +130,7 @@ class MassImport(object):
 		self.call_result_hook('user_result', result_data)
 		self.logger.info("------ Importing users done. ------")
 		if exc:
-			raise exc
+			raise type(exc), exc, sys.exc_info()[2]
 
 	def call_result_hook(self, func_name, importer):
 		"""
