@@ -56,11 +56,11 @@ class PostReadPyHook(ImportPyHook):
 
 	def entry_read(self, entry_count, input_data, input_dict):
 		"""
-		Run code after an entry has been read and saved in
-		input_data and input_dict. This hook may alter input_data
-		and input_dict to modify the input data. This function may
-		raise the exception UcsSchoolImportSkipImportRecord to ignore
-		the read import data.
+		Run code directly after an entry has been read and saved in
+		input_data and input_dict but before an ImportUser object is created.
+		This hook may alter input_data and input_dict to modify the input data.
+		This function may raise the exception UcsSchoolImportSkipImportRecord
+		to ignore the read import data.
 
 		:param int entry_count: index of the data entry (e.g. line of the CSV file)
 		:param list[str] input_data: input data as raw as possible (e.g. raw CSV columns). The input_data may be changed.
