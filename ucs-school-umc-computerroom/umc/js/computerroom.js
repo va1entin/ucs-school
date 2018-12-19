@@ -38,6 +38,7 @@ define([
 	"dojo/topic",
 	"dojo/dom",
 	"dojo/dom-class",
+	"dojo/dom-style",
 	"dojo/Deferred",
 	"dojo/store/Observable",
 	"dojo/store/Memory",
@@ -62,7 +63,7 @@ define([
 	"umc/modules/computerroom/ScreenshotView",
 	"umc/modules/computerroom/SettingsDialog",
 	"umc/i18n!umc/modules/computerroom"
-], function(declare, lang, array, ioQuery, aspect, on, topic, dom, domClass, Deferred, Observable, Memory, all, DijitProgressBar,
+], function(declare, lang, array, ioQuery, aspect, on, topic, dom, domClass, domStyle, Deferred, Observable, Memory, all, DijitProgressBar,
             Dialog, Tooltip, styles, entities, UMCApp, dialog, tools, Grid, Button, Module, Page, Form,
             ContainerWidget, Text, ComboBox, ProgressBar, ScreenshotView, SettingsDialog, _) {
 
@@ -169,7 +170,7 @@ define([
 				type: Text,
 				name: 'examEndTime',
 				'class': 'dijitButtonText umcExamEndTimeButton',
-				style: 'display: inline-block; vertical-align: middle;',
+				style: 'margin: 0 16px;',
 				visible: false
 			}, {
 				name: 'collect',
@@ -182,7 +183,6 @@ define([
 				iconClass: 'umcIconFinishExam',
 				visible: false,
 				label: _('Finish exam'),
-				style: 'margin-right: 2.5em;',
 				callback: lang.hitch(this, '_finishExam')
 			}];
 			this._headActions = [{
@@ -735,8 +735,13 @@ define([
 						msg += ' ('+ lang.replace(_('{0} powered off/misconfigured'), [failed]) + ')';
 					}
 					return msg;
+				},
+				_updateActionsVisibility: function() {
+					return;
 				}
 			});
+			domStyle.set(this._grid._clearSelectionButton.domNode, 'display', 'none');
+			domStyle.set(this._grid._statusMessage.domNode, 'width', '100%');
 
 			this._searchPage.addChild(this._grid);
 
@@ -752,9 +757,9 @@ define([
 
 		addHeaderContainer: function() {
 			// add a toolbar for buttons above the grid
-			var _containerRight = new ContainerWidget({ style: 'float: right' });
+			var _containerRight = new ContainerWidget({});
 			this._grid.own(_containerRight);
-			var _containerTop = new ContainerWidget({ style: 'width: 100%; padding-bottom: 5px;' });
+			var _containerTop = new ContainerWidget({ style: 'display: flex; align-items: center; flex-wrap: wrap; width: 100%;' });
 			this._grid.own(_containerTop);
 			this._headButtons = {};
 
@@ -771,8 +776,9 @@ define([
 			array.forEach(this._headActions, addButtonTo(_containerRight));
 			array.forEach(this._headActionsTop, addButtonTo(_containerTop));
 
-			this._grid._header.addChild(_containerRight);
+			this._grid._header.addChild(_containerRight, 3);
 			this._grid._header.addChild(_containerTop, 0);
+			domStyle.set(this._grid._header.domNode, 'flex-wrap', 'wrap');
 		},
 
 		postCreate: function() {
