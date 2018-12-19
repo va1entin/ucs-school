@@ -54,6 +54,10 @@ define([
 	return declare("umc.modules.schoolwizards", [Module], {
 
 		_grid: null,
+		selectablePagesToLayoutMapping: {
+			'_grid': 'searchpage-grid'
+		},
+
 		schools: null,
 
 		buildRendering: function() {

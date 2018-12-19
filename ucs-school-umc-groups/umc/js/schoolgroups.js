@@ -50,6 +50,10 @@ define([
 		_grid: null,
 		_searchPage: null,
 		_detailPage: null,
+		selectablePagesToLayoutMapping: {
+			'_searchPage': 'searchpage-grid',
+			'_detailPage': '' // TODO _detailPage is never actually selected as child
+		},
 		standbyOpacity: 1,
 		helpText: '',
 		autosearchVariable: '',

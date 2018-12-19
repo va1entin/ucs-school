@@ -50,6 +50,10 @@ define([
 		_grid: null,
 		_searchPage: null,
 		_detailPage: null,
+		selectablePagesToLayoutMapping: {
+			'_searchPage': 'searchpage-grid',
+			'_detailPage': ''
+		},
 		_startWithCreation: null, // If set the room creation dialog will be triggered automatically
 
 		buildRendering: function() {
@@ -189,7 +193,7 @@ define([
 							label: _('Add room')
 						}], title).then(lang.hitch(this, function(response) {
 							if (response === 'add') {
-								this._addObject()
+								this._addObject();
 							}
 						}));
 					}

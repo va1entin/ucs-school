@@ -130,6 +130,11 @@ define([
 		_screenshotView: null,
 		_settingsDialog: null,
 
+		selectablePagesToLayoutMapping: {
+			'_searchPage': 'searchpage-grid',
+			'_screenshotView': ''
+		},
+
 		_demo: null,
 
 		_actions: null,

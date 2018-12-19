@@ -49,6 +49,11 @@ define([
 		_assignPage: null,
 		_detailPage: null,
 		_adminPage: null,
+		selectablePagesToLayoutMapping: {
+			'_assignPage': 'searchpage-grid',
+			'_adminPage': 'searchpage-grid',
+			'_detailPage': ''
+		},
 
 		buildRendering: function() {
 			this.inherited(arguments);

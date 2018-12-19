@@ -59,6 +59,9 @@ define([
 		idProperty: 'id',
 		_grid: null,
 		_searchPage: null,
+		selectablePagesToLayoutMapping: {
+			'_searchPage': 'searchpage-grid'
+		},
 		_progressInfo: null,
 		_initialChangeDone: false,
 
@@ -100,7 +103,7 @@ define([
 				label: _('Password change required'),
 				width: '40%',
 				'formatter': function(key) {
-					days = Number(key)
+					days = Number(key);
 					if (days == -1) {
 						return _('never');
 					} else if (days == 0) {

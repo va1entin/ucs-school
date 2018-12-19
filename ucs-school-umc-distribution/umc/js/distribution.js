@@ -53,6 +53,11 @@ define([
 		_searchPage: null,
 		_detailPage: null,
 
+		selectablePagesToLayoutMapping: {
+			'_searchPage': 'searchpage-grid',
+			'_detailPage': ''
+		},
+
 		postMixInProperties: function() {
 			this.inherited(arguments);
 			this.standbyOpacity = 1;
