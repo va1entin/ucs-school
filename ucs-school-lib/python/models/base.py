@@ -212,6 +212,8 @@ class UCSSchoolHelperAbstractClass(object):
 	_initialized_udm_modules = []
 	_empty_hook_paths = set()
 
+	default_options = ()
+
 	hook_sep_char = '\t'
 	hook_path = '/usr/share/ucs-school-import/hooks/'
 
@@ -446,6 +448,22 @@ class UCSSchoolHelperAbstractClass(object):
 				if value is not None and attr.map_to_udm:
 					udm_obj[attr.udm_name] = value
 
+	def set_default_options(self, udm_obj):
+		for option in self.get_default_options():
+			if option not in udm_obj.options:
+				udm_obj.options.append(option)
+
+	@classmethod
+	def get_default_options(cls):
+		options = set()
+		for kls in cls.__bases__:  # u-s-import uses multiple inheritance, we have to cover all parents
+			try:
+				options.update(kls.get_default_options())
+			except AttributeError:
+				pass
+		options.update(cls.default_options)
+		return options
+
 	def create(self, lo, validate=True):
 		'''
 		Creates a new UDM instance.
@@ -502,6 +520,7 @@ class UCSSchoolHelperAbstractClass(object):
 			udm_obj['used_in_ucs_school'] = '1'
 			super(MyModel, self).do_create(udm_obj, lo)
 		'''
+		self.set_default_options(udm_obj)
 		self._alter_udm_obj(udm_obj)
 		udm_obj.create()
 

@@ -356,22 +356,6 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 			else:
 				logger.warning('Not allowed to create %r.', mail_domain)
 
-	def set_default_options(self, udm_obj):
-		for option in self.get_default_options():
-			if option not in udm_obj.options:
-				udm_obj.options.append(option)
-
-	@classmethod
-	def get_default_options(cls):
-		options = set()
-		for kls in cls.__bases__:  # u-s-import uses multiple inheritance, we have to cover all parents
-			try:
-				options.update(kls.get_default_options())
-			except AttributeError:
-				pass
-		options.update(cls.default_options)
-		return options
-
 	def get_specific_groups(self, lo):
 		groups = self.get_domain_users_groups()
 		for school_class in self.get_school_class_objs():
