@@ -103,6 +103,22 @@ objectclass ( univentionSchool:53.11 NAME 'ucsschoolWorkGroup'
         DESC 'auxiliary class for school class'
         SUP ucsschoolType AUXILIARY )
 
+objectclass ( univentionSchool:53.12 NAME 'ucsschoolDCSlave'
+        DESC 'auxiliary class for school class'
+        SUP ucsschoolType AUXILIARY )
+
+objectclass ( univentionSchool:53.13 NAME 'ucsschoolComputerWin'
+        DESC 'auxiliary class for school class'
+        SUP ucsschoolType AUXILIARY )
+
+objectclass ( univentionSchool:53.14 NAME 'ucsschoolComputerMac'
+        DESC 'auxiliary class for school class'
+        SUP ucsschoolType AUXILIARY )
+
+objectclass ( univentionSchool:53.15 NAME 'ucsschoolComputerIP'
+        DESC 'auxiliary class for school class'
+        SUP ucsschoolType AUXILIARY )
+
 attributetype ( univentionSchool:5201 NAME 'ucsschoolClassShareFileServer'
         DESC 'designated fileserver for class shares'
         EQUALITY distinguishedNameMatch

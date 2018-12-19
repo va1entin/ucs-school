@@ -522,6 +522,54 @@ univention-directory-manager settings/extended_attribute create "$@" --ignore_ex
 	--set multivalue="1" \
 	--set disableUDMWeb=1 || die
 
+univention-directory-manager settings/extended_options create "$@" --ignore_exists \
+	--position "cn=UCSschool,cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="ucsschoolDCSlave" \
+	--append module=computers/domaincontroller_slave \
+	--set objectClass=ucsschoolDCSlave \
+	--set default=0 \
+	--set editable=1 \
+	--set shortDescription="UCS@school DC Slave" \
+	--set longDescription="Specifies that this computer is a UCS@school DC Slave" \
+	--set translationShortDescription='"de_DE" "UCS@school-DCSlave"' \
+	--set translationLongDescription='"de_DE" "Spezifiziert, dass dieser Computer ein UCS@school-DCSlave ist"' || die
+
+univention-directory-manager settings/extended_options create "$@" --ignore_exists \
+	--position "cn=UCSschool,cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="ucsschoolComputerWin" \
+	--append module=computers/windows \
+	--set objectClass=ucsschoolComputerWin \
+	--set default=0 \
+	--set editable=1 \
+	--set shortDescription="UCS@school Windows Computer" \
+	--set longDescription="Specifies that this computer is a UCS@school Windows machine" \
+	--set translationShortDescription='"de_DE" "UCS@school-ComputerWin"' \
+	--set translationLongDescription='"de_DE" "Spezifiziert, dass dieser Computer ein UCS@school-Windowsrechner ist"' || die
+
+univention-directory-manager settings/extended_options create "$@" --ignore_exists \
+	--position "cn=UCSschool,cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="ucsschoolComputerMac" \
+	--append module=computers/macos \
+	--set objectClass=ucsschoolComputerMac \
+	--set default=0 \
+	--set editable=1 \
+	--set shortDescription="UCS@school Mac OS Computer" \
+	--set longDescription="Specifies that this computer is a UCS@school Mac OS machine" \
+	--set translationShortDescription='"de_DE" "UCS@school-ComputerMac"' \
+	--set translationLongDescription='"de_DE" "Spezifiziert, dass dieser Computer ein UCS@school-MacOS Rechner ist"' || die
+
+univention-directory-manager settings/extended_options create "$@" --ignore_exists \
+	--position "cn=UCSschool,cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="ucsschoolComputerIP" \
+	--append module=computers/ipmanagedclient \
+	--set objectClass=ucsschoolComputerIP \
+	--set default=0 \
+	--set editable=1 \
+	--set shortDescription="UCS@school IP managed Computer" \
+	--set longDescription="Specifies that this computer is a UCS@school IP managed machine" \
+	--set translationShortDescription='"de_DE" "UCS@school-ComputerIP"' \
+	--set translationLongDescription='"de_DE" "Spezifiziert, dass dieser Computer ein UCS@school-IP managed Rechner ist"' || die
+
 #### shares/share ####
 
 univention-directory-manager settings/extended_attribute create "$@" --ignore_exists \

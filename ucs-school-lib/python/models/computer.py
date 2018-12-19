@@ -79,6 +79,7 @@ class SchoolDC(UCSSchoolHelperAbstractClass):
 class SchoolDCSlave(RoleSupportMixin, SchoolDC):
 	groups = Groups(_('Groups'))
 	ucsschool_roles = Roles(_('Roles'), aka=['Roles'])
+	default_options = ('ucsschoolDCSlave',)
 
 	def do_create(self, udm_obj, lo):
 		udm_obj['unixhome'] = '/dev/null'
@@ -315,6 +316,7 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
 
 class WindowsComputer(SchoolComputer):
 	type_name = _('Windows system')
+	default_options = ('ucsschoolComputerWin',)
 
 	class Meta(SchoolComputer.Meta):
 		udm_module = 'computers/windows'
@@ -323,6 +325,7 @@ class WindowsComputer(SchoolComputer):
 
 class MacComputer(SchoolComputer):
 	type_name = _('Mac OS X')
+	default_options = ('ucsschoolComputerMac',)
 
 	class Meta(SchoolComputer.Meta):
 		udm_module = 'computers/macos'
@@ -331,6 +334,7 @@ class MacComputer(SchoolComputer):
 
 class IPComputer(SchoolComputer):
 	type_name = _('Device with IP address')
+	default_options = ('ucsschoolComputerIP',)
 
 	class Meta(SchoolComputer.Meta):
 		udm_module = 'computers/ipmanagedclient'
