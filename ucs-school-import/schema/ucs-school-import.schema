@@ -96,27 +96,35 @@ objectclass ( univentionSchool:53.9 NAME 'ucsschoolClass'
         SUP ucsschoolType AUXILIARY )
 
 objectclass ( univentionSchool:53.10 NAME 'ucsschoolComputerRoom'
-        DESC 'auxiliary class for school class'
+        DESC 'auxiliary class for school computer room'
         SUP ucsschoolType AUXILIARY )
 
 objectclass ( univentionSchool:53.11 NAME 'ucsschoolWorkGroup'
-        DESC 'auxiliary class for school class'
+        DESC 'auxiliary class for school work group'
         SUP ucsschoolType AUXILIARY )
 
 objectclass ( univentionSchool:53.12 NAME 'ucsschoolDCSlave'
-        DESC 'auxiliary class for school class'
+        DESC 'auxiliary class for school DC Slave'
         SUP ucsschoolType AUXILIARY )
 
 objectclass ( univentionSchool:53.13 NAME 'ucsschoolComputerWin'
-        DESC 'auxiliary class for school class'
+        DESC 'auxiliary class for school Windows computer'
         SUP ucsschoolType AUXILIARY )
 
 objectclass ( univentionSchool:53.14 NAME 'ucsschoolComputerMac'
-        DESC 'auxiliary class for school class'
+        DESC 'auxiliary class for school Mac OS computer'
         SUP ucsschoolType AUXILIARY )
 
 objectclass ( univentionSchool:53.15 NAME 'ucsschoolComputerIP'
-        DESC 'auxiliary class for school class'
+        DESC 'auxiliary class for school IP managed computer'
+        SUP ucsschoolType AUXILIARY )
+
+objectclass ( univentionSchool:53.16 NAME 'ucsschoolWorkGroupShare'
+        DESC 'auxiliary class for school work group share'
+        SUP ucsschoolType AUXILIARY )
+
+objectclass ( univentionSchool:53.17 NAME 'ucsschoolClassShare'
+        DESC 'auxiliary class for school class share'
         SUP ucsschoolType AUXILIARY )
 
 attributetype ( univentionSchool:5201 NAME 'ucsschoolClassShareFileServer'

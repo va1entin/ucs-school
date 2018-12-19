@@ -572,6 +572,30 @@ univention-directory-manager settings/extended_options create "$@" --ignore_exis
 
 #### shares/share ####
 
+univention-directory-manager settings/extended_options create "$@" --ignore_exists \
+	--position "cn=UCSschool,cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="ucsschoolWorkGroupShare" \
+	--append module=shares/share \
+	--set objectClass=ucsschoolWorkGroupShare \
+	--set default=0 \
+	--set editable=1 \
+	--set shortDescription="UCS@school WorkGroup share" \
+	--set longDescription="Specifies that this share is a UCS@school WorkGroup share" \
+	--set translationShortDescription='"de_DE" "UCS@school-WorkGroupShare"' \
+	--set translationLongDescription='"de_DE" "Spezifiziert, dass dieser Share ein UCS@school-WorkGroup share ist"' || die
+
+univention-directory-manager settings/extended_options create "$@" --ignore_exists \
+	--position "cn=UCSschool,cn=custom attributes,cn=univention,$ldap_base" \
+	--set name="ucsschoolClassShare" \
+	--append module=shares/share \
+	--set objectClass=ucsschoolClassShare \
+	--set default=0 \
+	--set editable=1 \
+	--set shortDescription="UCS@school class share" \
+	--set longDescription="Specifies that this share is a UCS@school class share" \
+	--set translationShortDescription='"de_DE" "UCS@school-ClassShare"' \
+	--set translationLongDescription='"de_DE" "Spezifiziert, dass dieser Share ein UCS@school-Klassen share ist"' || die
+
 univention-directory-manager settings/extended_attribute create "$@" --ignore_exists \
 	--position "cn=UCSschool,cn=custom attributes,cn=univention,$ldap_base" \
 	--set name="ucsschoolRoleShares" \
