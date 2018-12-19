@@ -189,6 +189,7 @@ class SchoolClass(RoleSupportMixin, Group, _MayHaveSchoolPrefix):
 	ucsschool_roles = Roles(_('Roles'), aka=['Roles'])
 
 	default_roles = [role_school_class]
+	default_options = ('ucsschoolClass', )
 	_school_in_name_prefix = True
 	ShareClass = ClassShare
 
@@ -246,6 +247,7 @@ class SchoolClass(RoleSupportMixin, Group, _MayHaveSchoolPrefix):
 
 class WorkGroup(SchoolClass, _MayHaveSchoolPrefix):
 	default_roles = [role_workgroup]
+	default_options = ('ucsschoolWorkGroup',)
 	ShareClass = WorkGroupShare
 
 	@classmethod
@@ -265,6 +267,7 @@ class WorkGroup(SchoolClass, _MayHaveSchoolPrefix):
 class ComputerRoom(RoleSupportMixin, Group, _MayHaveSchoolPrefix):
 	hosts = Hosts(_('Hosts'))
 	ucsschool_roles = Roles(_('Roles'), aka=['Roles'])
+	default_options = ('ucsschoolComputerRoom',)
 
 	users = None
 	default_roles = [role_computer_room]
