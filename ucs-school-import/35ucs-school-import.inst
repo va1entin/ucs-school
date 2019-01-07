@@ -104,6 +104,11 @@ if [ $JS_LAST_EXECUTED_VERSION -lt 1 ]; then
 	done
 fi
 
+if [ $JS_LAST_EXECUTED_VERSION -lt 19 ]; then
+	# add object classes to supported UCS@school objects
+	./usr/share/ucs-school-import/scripts/migrate_ucsschool_objectClasses
+fi
+
 univention-directory-manager container/cn      create "$@" --ignore_exists --set name="services" --position "cn=univention,$ldap_base"
 univention-directory-manager settings/service  create "$@" --ignore_exists --set name="Windows Home Server"  --position "cn=services,cn=univention,$ldap_base"
 univention-directory-manager settings/service  create "$@" --ignore_exists --set name="Windows Profile Server"  --position "cn=services,cn=univention,$ldap_base"
