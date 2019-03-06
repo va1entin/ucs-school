@@ -1,3 +1,9 @@
+ucs-test-ucsschool (6.0.0-28) unstable; urgency=low
+
+  * Bug #0000: Just a new version for the branch tests
+
+ -- Ole Schwiegert <schwiegert@univention.de>  Wed, 06 Mar 2019 12:03:54 +0100
+
 ucs-test-ucsschool (6.0.0-27) unstable; urgency=low
 
   * Bug #48651: fix 219_import_users_umlauts_normalized and
