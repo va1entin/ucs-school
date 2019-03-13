@@ -33,7 +33,7 @@
 
 
 class UnknownRole(Exception):
-	pass
+    pass
 
 
 role_pupil = 'pupil'  # attention: there is also "role_student"
@@ -72,16 +72,16 @@ role_workgroup = 'workgroup'
 role_workgroup_share = 'workgroup_share'
 
 all_roles = (
-	role_pupil, role_teacher, role_staff, role_computer_room, role_dc_backup, role_dc_master, role_dc_slave,
-	role_dc_slave_admin, role_dc_slave_edu, role_exam_user, role_memberserver,
-	role_memberserver_admin, role_memberserver_edu, role_school, role_school_admin, role_school_admin_group,
-	role_school_class, role_school_class_share, role_single_master, role_student, role_workgroup, role_workgroup_share,
-	role_school_domain_group, role_school_teacher_group, role_school_staff_group, role_school_student_group,
-	role_ip_computer, role_linux_computer, role_mac_computer, role_ubuntu_computer, role_win_computer,
+    role_pupil, role_teacher, role_staff, role_computer_room, role_dc_backup, role_dc_master, role_dc_slave,
+    role_dc_slave_admin, role_dc_slave_edu, role_exam_user, role_memberserver,
+    role_memberserver_admin, role_memberserver_edu, role_school, role_school_admin, role_school_admin_group,
+    role_school_class, role_school_class_share, role_single_master, role_student, role_workgroup, role_workgroup_share,
+    role_school_domain_group, role_school_teacher_group, role_school_staff_group, role_school_student_group,
+    role_ip_computer, role_linux_computer, role_mac_computer, role_ubuntu_computer, role_win_computer,
 )
 
 
 def create_ucsschool_role_string(role, school):
-	if role not in all_roles:
-		raise UnknownRole('Unknown role {!r}.'.format(role))
-	return '{}:school:{}'.format(role, school)
+    if role not in all_roles:
+        raise UnknownRole('Unknown role {!r}.'.format(role))
+    return '{}:school:{}'.format(role, school)
