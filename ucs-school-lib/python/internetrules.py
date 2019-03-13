@@ -38,24 +38,21 @@ import univention.config_registry
 import re
 
 # regular expression to match UCR variables for filter properties
-_regFilterNames = re.compile(r'^proxy/filter/setting(?P<userPrefix>-user)?/(?P<name>[^/]*)/(?P<property>[^/]*)(/(?P<listType>[^/]*)/(?P<index>[^/]*))?$')
+_regFilterNames = re.compile(
+    r"^proxy/filter/setting(?P<userPrefix>-user)?/(?P<name>[^/]*)/(?P<property>[^/]*)(/(?P<listType>[^/]*)/(?P<index>[^/]*))?$"
+)
 
 WHITELIST, BLACKLIST = range(2)
-_filterTypes = {
-    'blacklist-pass': BLACKLIST,
-    'whitelist-block': WHITELIST,
-}
+_filterTypes = {"blacklist-pass": BLACKLIST, "whitelist-block": WHITELIST}
 _filterTypesInv = dict([(_i[1], _i[0]) for _i in _filterTypes.iteritems()])
-_listTypes = {
-    'blacklisted': BLACKLIST,
-    'whitelisted': WHITELIST,
-}
+_listTypes = {"blacklisted": BLACKLIST, "whitelisted": WHITELIST}
 _listTypesInv = dict([(_i[1], _i[0]) for _i in _listTypes.iteritems()])
 
 
 class Rule(object):
-
-    def __init__(self, name, type=WHITELIST, priority=0, wlan=False, domains=[], userRule=False):
+    def __init__(
+        self, name, type=WHITELIST, priority=0, wlan=False, domains=[], userRule=False
+    ):
         self.name = name
         self.type = type
         self.priority = priority
@@ -65,7 +62,7 @@ class Rule(object):
         self.userRule = userRule
 
     def __str__(self):
-        return '<rule:%s type:%s priority:%s>' % (self.name, self.type, self.priority)
+        return "<rule:%s type:%s priority:%s>" % (self.name, self.type, self.priority)
 
     def __repr__(self):
         return self.__str__()
@@ -77,17 +74,19 @@ class Rule(object):
         return [i for i in self._domains if i[0] < 0 and i[2] == type]
 
     def _getDomains(self, type):
-        return [i for i in self._getIndexedDomains(type) + self._getAppendedDomains(type)]
+        return [
+            i for i in self._getIndexedDomains(type) + self._getAppendedDomains(type)
+        ]
 
     @property
     def domains(self):
-        '''Return list of all domains, the order respects the indeces.
-        Show only the entries that match the current filter type.'''
+        """Return list of all domains, the order respects the indeces.
+        Show only the entries that match the current filter type."""
         return [i[1] for i in self._getDomains(self.type)]
 
     @domains.setter
     def domains(self, domains):
-        '''domains can be a list of strings or a list of index-string-type tuples.'''
+        """domains can be a list of strings or a list of index-string-type tuples."""
         self._domains = []
         for i in domains:
             if isinstance(i, str):
@@ -96,34 +95,34 @@ class Rule(object):
                 self._domains.append(i)
 
     def addDomain(self, domain, idx=-1, listType=None):
-        '''add a new domain with an optional fixed index and list type'''
+        """add a new domain with an optional fixed index and list type"""
         if listType not in _listTypesInv:
             listType = self.type
         self._domains.append((idx, domain, listType))
 
     def save(self):
-        '''Save the current rule as UCR variables. If the rule already exists,
+        """Save the current rule as UCR variables. If the rule already exists,
         only the changed properties will be saved. In case the rules are similar,
-        no changes will be done.'''
+        no changes will be done."""
         # load original rule
         orgRule = load(self.name)
 
         # prepare for saving filter properties
         vars = []
         rmVars = []
-        prefix = 'proxy/filter/setting/%s' % self.name
+        prefix = "proxy/filter/setting/%s" % self.name
         if self.userRule:
             # this is a user rule which has a different prefix
-            prefix = 'proxy/filter/setting-user/%s' % self.name
+            prefix = "proxy/filter/setting-user/%s" % self.name
         if not orgRule or orgRule.type != self.type:
-            vars.append('%s/filtertype=%s' % (prefix, _filterTypesInv[self.type]))
+            vars.append("%s/filtertype=%s" % (prefix, _filterTypesInv[self.type]))
         if not orgRule or orgRule.priority != self.priority:
-            vars.append('%s/priority=%s' % (prefix, self.priority))
+            vars.append("%s/priority=%s" % (prefix, self.priority))
         if not orgRule or orgRule.wlan != self.wlan:
-            wlan = 'true'
+            wlan = "true"
             if not self.wlan:
-                wlan = 'false'
-            vars.append('%s/wlan=%s' % (prefix, wlan))
+                wlan = "false"
+            vars.append("%s/wlan=%s" % (prefix, wlan))
 
         # iterate over all blacklist and whitelist entries
         for itype in _listTypes.values():
@@ -131,28 +130,36 @@ class Rule(object):
             # ... get the original list of domains with indeces and sorted
             orgDomains = []
             if orgRule:
-                orgDomains = orgRule._getIndexedDomains(itype) + orgRule._getAppendedDomains(itype)
+                orgDomains = orgRule._getIndexedDomains(
+                    itype
+                ) + orgRule._getAppendedDomains(itype)
 
             # prepare list of current domains with indeces
             domains = [i[1] for i in self._getDomains(itype)]
             domains = [(i + 1, domains[i], itype) for i in range(len(domains))]
 
             # find the entries that need to be changed/added
-            domainPrefix = '%s/domain/%s' % (prefix, _listTypesInv[itype])
+            domainPrefix = "%s/domain/%s" % (prefix, _listTypesInv[itype])
             iorg = 0
             inew = 0
             while inew < len(domains):
                 if iorg >= len(orgDomains) or orgDomains[iorg] != domains[inew]:
-                    vars.append('%s/%s=%s' % (domainPrefix, domains[inew][0], domains[inew][1]))
+                    vars.append(
+                        "%s/%s=%s" % (domainPrefix, domains[inew][0], domains[inew][1])
+                    )
 
                 # increment iterators
-                if iorg < len(orgDomains) and orgDomains[iorg][0] <= domains[inew][0] and orgDomains[iorg][0] >= 0:
+                if (
+                    iorg < len(orgDomains)
+                    and orgDomains[iorg][0] <= domains[inew][0]
+                    and orgDomains[iorg][0] >= 0
+                ):
                     iorg += 1
                 inew += 1
 
             # collect entries that need to be removed
             while iorg < len(orgDomains):
-                rmVars.append('%s/%s' % (domainPrefix, orgDomains[iorg][0]))
+                rmVars.append("%s/%s" % (domainPrefix, orgDomains[iorg][0]))
                 iorg += 1
 
         # write changes
@@ -163,8 +170,8 @@ class Rule(object):
 
 
 def findUCRVariables(filterName=None, userRule=False):
-    '''Returns a dict of all UCR variables or all variables matching the
-    specified rule name.'''
+    """Returns a dict of all UCR variables or all variables matching the
+    specified rule name."""
     # refresh internal UCR cache
     ucr.load()
 
@@ -174,13 +181,13 @@ def findUCRVariables(filterName=None, userRule=False):
         imatch = _regFilterNames.match(k)
         if imatch:
             # we found a filter variable
-            iname = imatch.group('name')
+            iname = imatch.group("name")
             if not iname or (filterName is not None and filterName != iname):
                 # empty name or name does not match the specified filter
                 continue
 
             # see whether this is a user specific rule or a general rule
-            if userRule != bool(imatch.group('userPrefix')):
+            if userRule != bool(imatch.group("userPrefix")):
                 continue
 
             # bingo, we got a match :)
@@ -191,7 +198,7 @@ def findUCRVariables(filterName=None, userRule=False):
 
 
 def remove(name, userRule=False):
-    '''Removes the UCR variables corresponding to the specified rule.'''
+    """Removes the UCR variables corresponding to the specified rule."""
     if not name:
         return False
     rmVars = findUCRVariables(name, userRule).keys()
@@ -202,16 +209,16 @@ def remove(name, userRule=False):
 
 
 def load(name, userRule=False):
-    '''Wrapper for list(name).'''
+    """Wrapper for list(name)."""
     return list(name, userRule)
 
 
 def list(filterName=None, userRule=False):
-    '''Returns a list of all existing rules. If name is given, returns only the
+    """Returns a list of all existing rules. If name is given, returns only the
     rule matching the specified name or None. userRule specifies whether all
     common rules (=False) or only user-specific rules (=True) are listed.
     If filterName is specified, only rule matching this name is returned as
-    single object (not as list!).'''
+    single object (not as list!)."""
 
     # iterate over all UCR variables
     rules = {}
@@ -222,38 +229,44 @@ def list(filterName=None, userRule=False):
             continue
 
         # get filter name
-        iname = imatch.group('name')
+        iname = imatch.group("name")
 
         # get the rule from our cache
         irule = rules.get(iname, Rule(iname))
 
         # update the rule with the given property
         # NOTE: URL black-/whitelists are not supported anymore, only domain lists
-        iproperty = imatch.group('property')
-        if iproperty == 'filtertype':
+        iproperty = imatch.group("property")
+        if iproperty == "filtertype":
             if v not in _filterTypes:
                 irule.type = WHITELIST
-                MODULE.error('Unknown filtertype "%s" for rule "%s", using whitelist as default.' % (v, irule))
+                MODULE.error(
+                    'Unknown filtertype "%s" for rule "%s", using whitelist as default.'
+                    % (v, irule)
+                )
             else:
                 irule.type = _filterTypes[v]
-        elif iproperty == 'priority':
+        elif iproperty == "priority":
             try:
                 irule.priority = int(v)
             except ValueError:
                 irule.priority = 5
-                MODULE.error('Could not parse priority "%s" for rule "%s", using default value "5".' % (v, irule))
-        elif iproperty == 'wlan':
+                MODULE.error(
+                    'Could not parse priority "%s" for rule "%s", using default value "5".'
+                    % (v, irule)
+                )
+        elif iproperty == "wlan":
             irule.wlan = ucr.is_true(k)
-        elif iproperty == 'domain':
+        elif iproperty == "domain":
             # get the index
             idx = -1
             try:
-                idx = int(imatch.group('index'))
+                idx = int(imatch.group("index"))
             except ValueError:
                 pass
 
             # get list type (blacklisted or whitelisted)
-            listType = _listTypes.get(imatch.group('listType'))
+            listType = _listTypes.get(imatch.group("listType"))
 
             # add domain to list of domains
             irule.addDomain(v, idx, listType)
@@ -273,40 +286,48 @@ def list(filterName=None, userRule=False):
 
 
 def getGroupRuleName(groupNames):
-    '''Return the name of the filter rule for the specified group name.
+    """Return the name of the filter rule for the specified group name.
     Usage:
         getGroupRuleName([<groupName>, ...]) -> { <groupName>:<ruleName>, ... }
     or
-        getGroupRuleName(<groupName) -> <ruleName>'''
+        getGroupRuleName(<groupName) -> <ruleName>"""
     ucr.load()
     if not isinstance(groupNames, type([])):
-        return ucr.get('proxy/filter/groupdefault/%s' % groupNames)
-    return dict([(iname, ucr.get('proxy/filter/groupdefault/%s' % iname)) for iname in groupNames])
+        return ucr.get("proxy/filter/groupdefault/%s" % groupNames)
+    return dict(
+        [
+            (iname, ucr.get("proxy/filter/groupdefault/%s" % iname))
+            for iname in groupNames
+        ]
+    )
 
 
 def unsetGroupRuleName(groupNames):
-    '''Unset the default rule for the given group name.
+    """Unset the default rule for the given group name.
     Usage:
         setGroupRuleName(<groupName>)
     or
-        setGroupRuleName([<groupName>, ... ])'''
+        setGroupRuleName([<groupName>, ... ])"""
     vars = []
     if not isinstance(groupNames, type([])):
-        vars.append('proxy/filter/groupdefault/%s' % groupNames)
+        vars.append("proxy/filter/groupdefault/%s" % groupNames)
     else:
-        vars = ['proxy/filter/groupdefault/%s' % iname for iname in groupNames]
+        vars = ["proxy/filter/groupdefault/%s" % iname for iname in groupNames]
     univention.config_registry.handler_unset(vars)
 
 
 def setGroupRuleName(*args):
-    '''Set the default rule for the given group name.
+    """Set the default rule for the given group name.
     Usage:
         setGroupRuleName(<groupName>, <ruleName>)
     or
-        setGroupRuleName({ <groupName>: <ruleName>, ... })'''
+        setGroupRuleName({ <groupName>: <ruleName>, ... })"""
     vars = []
     if len(args) > 1:
-        vars = ['proxy/filter/groupdefault/%s=%s' % (args[0], args[1])]
+        vars = ["proxy/filter/groupdefault/%s=%s" % (args[0], args[1])]
     else:
-        vars = ['proxy/filter/groupdefault/%s=%s' % (iname, irule) for iname, irule in args[0].iteritems()]
+        vars = [
+            "proxy/filter/groupdefault/%s=%s" % (iname, irule)
+            for iname, irule in args[0].iteritems()
+        ]
     univention.config_registry.handler_set(vars)

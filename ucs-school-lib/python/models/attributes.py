@@ -34,10 +34,24 @@ import re
 from ldap.dn import escape_dn_chars
 
 from univention.admin.syntax import (
-        gid, string_numbers_letters_dots_spaces, uid_umlauts, iso8601Date,
-        primaryEmailAddressValidDomain, boolean, UserDN, GroupDN, ipAddress,
-        MAC_Address, disabled, reverseLookupSubnet, ipv4Address, v4netmask,
-        netmask, UDM_Objects, string)
+    gid,
+    string_numbers_letters_dots_spaces,
+    uid_umlauts,
+    iso8601Date,
+    primaryEmailAddressValidDomain,
+    boolean,
+    UserDN,
+    GroupDN,
+    ipAddress,
+    MAC_Address,
+    disabled,
+    reverseLookupSubnet,
+    ipv4Address,
+    v4netmask,
+    netmask,
+    UDM_Objects,
+    string,
+)
 from univention.admin.uexceptions import valueError
 
 from ucsschool.lib.roles import all_roles
@@ -55,7 +69,16 @@ class Attribute(object):
     value_type = None
     value_default = None
 
-    def __init__(self, label, aka=None, udm_name=None, required=False, unlikely_to_change=False, internal=False, map_to_udm=True):
+    def __init__(
+        self,
+        label,
+        aka=None,
+        udm_name=None,
+        required=False,
+        unlikely_to_change=False,
+        internal=False,
+        map_to_udm=True,
+    ):
         self.label = label
         self.aka = aka or []  # also_known_as
         self.required = required
@@ -77,16 +100,21 @@ class Attribute(object):
     def validate(self, value):
         if value is not None:
             if self.value_type and not isinstance(value, self.value_type):
-                raise ValueError(_('"%(label)s" needs to be a %(type)s') % {'type': self.value_type.__name__, 'label': self.label})
+                raise ValueError(
+                    _('"%(label)s" needs to be a %(type)s')
+                    % {"type": self.value_type.__name__, "label": self.label}
+                )
             values = value if self.value_type else [value]
             self._validate_syntax(values)
         else:
             if self.required:
-                raise ValueError(_('"%s" is required. Please provide this information.') % self.label)
+                raise ValueError(
+                    _('"%s" is required. Please provide this information.') % self.label
+                )
 
 
 class CommonName(Attribute):
-    udm_name = 'name'
+    udm_name = "name"
     syntax = None
 
     def __init__(self, label, aka=None):
@@ -96,20 +124,20 @@ class CommonName(Attribute):
         super(CommonName, self).validate(value)
         escaped = escape_dn_chars(value)
         if value != escaped:
-            raise ValueError(_('May not contain special characters'))
+            raise ValueError(_("May not contain special characters"))
 
 
 class Username(CommonName):
-    udm_name = 'username'
+    udm_name = "username"
     syntax = uid_umlauts
 
 
 class DHCPServerName(CommonName):
-    udm_name = 'server'
+    udm_name = "server"
 
 
 class DHCPServiceName(CommonName):
-    udm_name = 'service'
+    udm_name = "service"
 
 
 class GroupName(CommonName):
@@ -117,7 +145,6 @@ class GroupName(CommonName):
 
 
 class SchoolClassName(GroupName):
-
     def _validate_syntax(self, values, syntax=None):
         super(SchoolClassName, self)._validate_syntax(values)
         # needs to check ShareName.syntax, too: SchoolClass will
@@ -130,56 +157,63 @@ class ShareName(CommonName):
 
 
 class SubnetName(CommonName):
-    udm_name = 'subnet'
+    udm_name = "subnet"
     syntax = reverseLookupSubnet
 
 
 class DHCPSubnetName(SubnetName):
-    udm_name = 'subnet'
+    udm_name = "subnet"
     syntax = ipv4Address
 
 
 class SchoolName(CommonName):
-    udm_name = 'name'
+    udm_name = "name"
 
     def validate(self, value):
         super(SchoolName, self).validate(value)
-        if ucr.is_true('ucsschool/singlemaster', False):
-            regex = re.compile('^[a-zA-Z0-9](([a-zA-Z0-9-]*)([a-zA-Z0-9]$))?$')
+        if ucr.is_true("ucsschool/singlemaster", False):
+            regex = re.compile("^[a-zA-Z0-9](([a-zA-Z0-9-]*)([a-zA-Z0-9]$))?$")
             if not regex.match(value):
-                raise ValueError(_('Invalid school name'))
+                raise ValueError(_("Invalid school name"))
 
 
 class DCName(Attribute):
-
     def validate(self, value):
         super(DCName, self).validate(value)
         if value:
-            regex = re.compile('^[a-zA-Z0-9](([a-zA-Z0-9-]*)([a-zA-Z0-9]$))?$')
+            regex = re.compile("^[a-zA-Z0-9](([a-zA-Z0-9-]*)([a-zA-Z0-9]$))?$")
             if not regex.match(value):
-                raise ValueError(_('Invalid Domain Controller name'))
-            if ucr.is_true('ucsschool/singlemaster', False):
+                raise ValueError(_("Invalid Domain Controller name"))
+            if ucr.is_true("ucsschool/singlemaster", False):
                 if len(value) > 12:
-                    raise ValueError(_('A valid NetBIOS hostname can not be longer than 12 characters.'))
-                if sum([len(value), 1, len(ucr.get('domainname', ''))]) > 63:
-                    raise ValueError(_('The length of fully qualified domain name is greater than 63 characters.'))
+                    raise ValueError(
+                        _(
+                            "A valid NetBIOS hostname can not be longer than 12 characters."
+                        )
+                    )
+                if sum([len(value), 1, len(ucr.get("domainname", ""))]) > 63:
+                    raise ValueError(
+                        _(
+                            "The length of fully qualified domain name is greater than 63 characters."
+                        )
+                    )
 
 
 class Firstname(Attribute):
-    udm_name = 'firstname'
+    udm_name = "firstname"
 
 
 class Lastname(Attribute):
-    udm_name = 'lastname'
+    udm_name = "lastname"
 
 
 class Birthday(Attribute):
-    udm_name = 'birthday'
+    udm_name = "birthday"
     syntax = iso8601Date
 
 
 class Email(Attribute):
-    udm_name = 'mailPrimaryAddress'
+    udm_name = "mailPrimaryAddress"
     syntax = primaryEmailAddressValidDomain
 
     def validate(self, value):
@@ -189,11 +223,11 @@ class Email(Attribute):
 
 
 class Password(Attribute):
-    udm_name = 'password'
+    udm_name = "password"
 
 
 class Disabled(Attribute):
-    udm_name = 'disabled'
+    udm_name = "disabled"
     syntax = disabled
 
 
@@ -212,16 +246,16 @@ class SchoolClassAttribute(Attribute):
 
 
 class Description(Attribute):
-    udm_name = 'description'
+    udm_name = "description"
 
 
 class DisplayName(Attribute):
-    udm_name = 'displayName'
+    udm_name = "displayName"
     extended = True
 
 
 class EmptyAttributes(Attribute):
-    udm_name = 'emptyAttributes'
+    udm_name = "emptyAttributes"
     # syntax = dhcp_dnsFixedAttributes # only set internally, no need to use.
     #   also, it is not part of the "main" syntax.py!
 
@@ -241,13 +275,13 @@ class Groups(Attribute):
 
 
 class Users(Attribute):
-    udm_name = 'users'
+    udm_name = "users"
     syntax = UserDN
     value_type = list
 
 
 class IPAddress(Attribute):
-    udm_name = 'ip'
+    udm_name = "ip"
     syntax = ipAddress
 
 
@@ -256,7 +290,7 @@ class SubnetMask(Attribute):
 
 
 class DHCPSubnetMask(Attribute):
-    udm_name = 'subnetmask'
+    udm_name = "subnetmask"
     syntax = v4netmask
 
 
@@ -265,7 +299,7 @@ class DHCPServiceAttribute(Attribute):
 
 
 class BroadcastAddress(Attribute):
-    udm_name = 'broadcastaddress'
+    udm_name = "broadcastaddress"
     syntax = ipv4Address
 
 
@@ -274,17 +308,17 @@ class NetworkBroadcastAddress(Attribute):
 
 
 class NetworkAttribute(Attribute):
-    udm_name = 'network'
+    udm_name = "network"
     syntax = ipAddress
 
 
 class Netmask(Attribute):
-    udm_name = 'netmask'
+    udm_name = "netmask"
     syntax = netmask
 
 
 class MACAddress(Attribute):
-    udm_name = 'mac'
+    udm_name = "mac"
     syntax = MAC_Address
 
 
@@ -293,33 +327,35 @@ class InventoryNumber(Attribute):
 
 
 class Hosts(Attribute):
-    udm_name = 'hosts'
+    udm_name = "hosts"
     value_type = list
     syntax = UDM_Objects
 
 
 class Schools(Attribute):
-    udm_name = 'school'
+    udm_name = "school"
     value_type = list
     value_default = list
-    syntax = string  # ucsschoolSchools (cannot be used because it's not available on import time on a unjoined DC Slave)
+    syntax = (
+        string
+    )  # ucsschoolSchools (cannot be used because it's not available on import time on a unjoined DC Slave)
     extended = True
 
 
 class RecordUID(Attribute):
-    udm_name = 'ucsschoolRecordUID'
+    udm_name = "ucsschoolRecordUID"
     syntax = string
     extended = True
 
 
 class SourceUID(Attribute):
-    udm_name = 'ucsschoolSourceUID'
+    udm_name = "ucsschoolSourceUID"
     syntax = string
     extended = True
 
 
 class RolesSyntax(string):
-    regex = re.compile(r'^(?P<role>.+):(?P<context_type>.+):(?P<context>.+)$')
+    regex = re.compile(r"^(?P<role>.+):(?P<context_type>.+):(?P<context>.+)$")
 
     @classmethod
     def parse(cls, text):
@@ -327,16 +363,16 @@ class RolesSyntax(string):
             return text
         reg = cls.regex.match(text)
         if not reg:
-            raise ValueError(_('Role has bad format'))
-        if reg.groupdict()['context_type'] != 'school':
-            raise ValueError(_('Unknown context type'))
-        if reg.groupdict()['role'] not in all_roles:
-            raise ValueError(_('Unknown role'))
+            raise ValueError(_("Role has bad format"))
+        if reg.groupdict()["context_type"] != "school":
+            raise ValueError(_("Unknown context type"))
+        if reg.groupdict()["role"] not in all_roles:
+            raise ValueError(_("Unknown role"))
         return super(RolesSyntax, cls).parse(text)
 
 
 class Roles(Attribute):
-    udm_name = 'ucsschoolRole'
+    udm_name = "ucsschoolRole"
     value_type = list
     value_default = list
     syntax = RolesSyntax

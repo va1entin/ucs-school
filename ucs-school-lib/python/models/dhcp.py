@@ -34,19 +34,29 @@ from ldap.dn import dn2str, str2dn
 from ldap.filter import filter_format
 import ipaddr
 
-from ucsschool.lib.models.attributes import DHCPServiceName, Attribute, DHCPSubnetName, DHCPSubnetMask, BroadcastAddress, DHCPServiceAttribute, DHCPServerName
+from ucsschool.lib.models.attributes import (
+    DHCPServiceName,
+    Attribute,
+    DHCPSubnetName,
+    DHCPSubnetMask,
+    BroadcastAddress,
+    DHCPServiceAttribute,
+    DHCPServerName,
+)
 from ucsschool.lib.models.base import UCSSchoolHelperAbstractClass
 from ucsschool.lib.models.utils import ucr, _, logger
 
 
 class DHCPService(UCSSchoolHelperAbstractClass):
-    name = DHCPServiceName(_('Service'))
-    hostname = Attribute(_('Hostname'))
-    domainname = Attribute(_('Domain'))
+    name = DHCPServiceName(_("Service"))
+    hostname = Attribute(_("Hostname"))
+    domainname = Attribute(_("Domain"))
 
     def do_create(self, udm_obj, lo):
-        udm_obj.options.append('options')
-        udm_obj['option'] = ['wpad "http://%s.%s/proxy.pac"' % (self.hostname, self.domainname)]
+        udm_obj.options.append("options")
+        udm_obj["option"] = [
+            'wpad "http://%s.%s/proxy.pac"' % (self.hostname, self.domainname)
+        ]
         return super(DHCPService, self).do_create(udm_obj, lo)
 
     @classmethod
@@ -72,51 +82,82 @@ class DHCPService(UCSSchoolHelperAbstractClass):
         dhcp_server = DHCPServer(name=dc_name, school=school.name, dhcp_service=self)
         existing_dhcp_server_dn = DHCPServer.find_any_dn_with_name(dc_name, lo)
         if existing_dhcp_server_dn:
-            logger.info('DHCP server %s exists!', existing_dhcp_server_dn)
+            logger.info("DHCP server %s exists!", existing_dhcp_server_dn)
             old_dhcp_server_container = lo.parentDn(existing_dhcp_server_dn)
-            dhcpd_ldap_base = ucr.get('dhcpd/ldap/base', '')
+            dhcpd_ldap_base = ucr.get("dhcpd/ldap/base", "")
             # only move if
             # - forced via kwargs OR
             # - in multiserver environments OR
             # - desired dhcp server DN matches with UCR config
-            if force_dhcp_server_move or not ucr.is_true('ucsschool/singlemaster', False) or dhcp_server.dn.endswith(',%s' % dhcpd_ldap_base):
+            if (
+                force_dhcp_server_move
+                or not ucr.is_true("ucsschool/singlemaster", False)
+                or dhcp_server.dn.endswith(",%s" % dhcpd_ldap_base)
+            ):
                 # move if existing DN does not match with desired DN
                 if existing_dhcp_server_dn != dhcp_server.dn:
                     # move existing dhcp server object to OU/DHCP service
-                    logger.info('DHCP server %s not in school %r! Removing and creating new one at %s!', existing_dhcp_server_dn, school, dhcp_server.dn)
-                    old_superordinate = DHCPServer.find_udm_superordinate(existing_dhcp_server_dn, lo)
-                    old_dhcp_server = DHCPServer.from_dn(existing_dhcp_server_dn, None, lo, superordinate=old_superordinate)
+                    logger.info(
+                        "DHCP server %s not in school %r! Removing and creating new one at %s!",
+                        existing_dhcp_server_dn,
+                        school,
+                        dhcp_server.dn,
+                    )
+                    old_superordinate = DHCPServer.find_udm_superordinate(
+                        existing_dhcp_server_dn, lo
+                    )
+                    old_dhcp_server = DHCPServer.from_dn(
+                        existing_dhcp_server_dn,
+                        None,
+                        lo,
+                        superordinate=old_superordinate,
+                    )
                     old_dhcp_server.remove(lo)
                     dhcp_server.create(lo)
 
             # copy subnets
             # find local interfaces
             interfaces = []
-            for interface_name in set([key.split('/')[1] for key in ucr.keys() if key.startswith('interfaces/eth')]):
+            for interface_name in set(
+                [
+                    key.split("/")[1]
+                    for key in ucr.keys()
+                    if key.startswith("interfaces/eth")
+                ]
+            ):
                 try:
-                    address = ipaddr.IPv4Network('%s/%s' % (
-                            ucr['interfaces/%s/address' % interface_name],
-                            ucr['interfaces/%s/netmask' % interface_name],
-                    ))
+                    address = ipaddr.IPv4Network(
+                        "%s/%s"
+                        % (
+                            ucr["interfaces/%s/address" % interface_name],
+                            ucr["interfaces/%s/netmask" % interface_name],
+                        )
+                    )
                     interfaces.append(address)
                 except ValueError as exc:
-                    logger.info('Skipping invalid interface %s:\n%s', interface_name, exc)
-            subnet_dns = DHCPSubnet.find_all_dns_below_base(old_dhcp_server_container, lo)
+                    logger.info(
+                        "Skipping invalid interface %s:\n%s", interface_name, exc
+                    )
+            subnet_dns = DHCPSubnet.find_all_dns_below_base(
+                old_dhcp_server_container, lo
+            )
             for subnet_dn in subnet_dns:
                 dhcp_service = DHCPSubnet.find_udm_superordinate(subnet_dn, lo)
-                dhcp_subnet = DHCPSubnet.from_dn(subnet_dn, self.school, lo, superordinate=dhcp_service)
+                dhcp_subnet = DHCPSubnet.from_dn(
+                    subnet_dn, self.school, lo, superordinate=dhcp_service
+                )
                 subnet = dhcp_subnet.get_ipv4_subnet()
                 if subnet in interfaces:  # subnet matches any local subnet
-                    logger.info('Creating new DHCPSubnet from %s', subnet_dn)
+                    logger.info("Creating new DHCPSubnet from %s", subnet_dn)
                     new_dhcp_subnet = DHCPSubnet(**dhcp_subnet.to_dict())
                     new_dhcp_subnet.dhcp_service = self
                     new_dhcp_subnet.position = new_dhcp_subnet.get_own_container()
                     new_dhcp_subnet.set_dn(new_dhcp_subnet.dn)
                     new_dhcp_subnet.create(lo)
                 else:
-                    logger.info('Skipping non-local subnet %s', subnet)
+                    logger.info("Skipping non-local subnet %s", subnet)
         else:
-            logger.info('No DHCP server named %s found! Creating new one!', dc_name)
+            logger.info("No DHCP server named %s found! Creating new one!", dc_name)
             dhcp_server.create(lo)
 
     def get_servers(self, lo):
@@ -127,7 +168,7 @@ class DHCPService(UCSSchoolHelperAbstractClass):
         return ret
 
     class Meta:
-        udm_module = 'dhcp/service'
+        udm_module = "dhcp/service"
 
 
 class AnyDHCPService(DHCPService):
@@ -135,7 +176,7 @@ class AnyDHCPService(DHCPService):
 
     @classmethod
     def get_container(cls, school=None):
-        return ucr.get('ldap/base')
+        return ucr.get("ldap/base")
 
     def get_servers(self, lo):
         old_name = self.name
@@ -151,8 +192,8 @@ class AnyDHCPService(DHCPService):
 
 
 class DHCPServer(UCSSchoolHelperAbstractClass):
-    name = DHCPServerName(_('Server name'))
-    dhcp_service = DHCPServiceAttribute(_('DHCP service'), required=True)
+    name = DHCPServerName(_("Server name"))
+    dhcp_service = DHCPServiceAttribute(_("DHCP service"), required=True)
 
     def get_own_container(self):
         if self.dhcp_service:
@@ -168,24 +209,27 @@ class DHCPServer(UCSSchoolHelperAbstractClass):
 
     @classmethod
     def find_any_dn_with_name(cls, name, lo):
-        logger.debug('Searching first dhcpServer with cn=%s', name)
+        logger.debug("Searching first dhcpServer with cn=%s", name)
         try:
-            dn = lo.searchDn(filter=filter_format('(&(objectClass=dhcpServer)(cn=%s))', [name]), base=ucr.get('ldap/base'))[0]
+            dn = lo.searchDn(
+                filter=filter_format("(&(objectClass=dhcpServer)(cn=%s))", [name]),
+                base=ucr.get("ldap/base"),
+            )[0]
         except IndexError:
             dn = None
-        logger.debug('... %r found', dn)
+        logger.debug("... %r found", dn)
         return dn
 
     class Meta:
-        udm_module = 'dhcp/server'
+        udm_module = "dhcp/server"
         name_is_unique = True
 
 
 class DHCPSubnet(UCSSchoolHelperAbstractClass):
-    name = DHCPSubnetName(_('Subnet address'))
-    subnet_mask = DHCPSubnetMask(_('Netmask'))
-    broadcast = BroadcastAddress(_('Broadcast'))
-    dhcp_service = DHCPServiceAttribute(_('DHCP service'), required=True)
+    name = DHCPSubnetName(_("Subnet address"))
+    subnet_mask = DHCPSubnetMask(_("Netmask"))
+    broadcast = BroadcastAddress(_("Broadcast"))
+    dhcp_service = DHCPServiceAttribute(_("DHCP service"), required=True)
 
     def get_own_container(self):
         if self.dhcp_service:
@@ -200,16 +244,16 @@ class DHCPSubnet(UCSSchoolHelperAbstractClass):
             return self.dhcp_service.get_udm_object(lo)
 
     def get_ipv4_subnet(self):
-        network_str = '%s/%s' % (self.name, self.subnet_mask)
+        network_str = "%s/%s" % (self.name, self.subnet_mask)
         try:
             return ipaddr.IPv4Network(network_str)
         except ValueError as exc:
-            logger.info('%r is no valid IPv4Network:\n%s', network_str, exc)
+            logger.info("%r is no valid IPv4Network:\n%s", network_str, exc)
 
     @classmethod
     def find_all_dns_below_base(cls, dn, lo):
-        logger.debug('Searching all univentionDhcpSubnet in %r', dn)
-        return lo.searchDn(filter='(objectClass=univentionDhcpSubnet)', base=dn)
+        logger.debug("Searching all univentionDhcpSubnet in %r", dn)
+        return lo.searchDn(filter="(objectClass=univentionDhcpSubnet)", base=dn)
 
     class Meta:
-        udm_module = 'dhcp/subnet'
+        udm_module = "dhcp/subnet"

@@ -49,7 +49,11 @@ from ldap.filter import escape_filter_chars, filter_format
 
 from univention.management.console.config import ucr
 from univention.management.console.log import MODULE
-from univention.management.console.ldap import get_machine_connection, get_admin_connection, get_user_connection  # , reset_cache as reset_connection_cache
+from univention.management.console.ldap import (
+    get_machine_connection,
+    get_admin_connection,
+    get_user_connection,
+)  # , reset_cache as reset_connection_cache
 from univention.management.console.modules import Base, UMC_Error
 from univention.management.console.modules.decorators import sanitize
 from univention.management.console.modules.sanitizers import StringSanitizer
@@ -59,7 +63,7 @@ udm_modules.update()
 
 __bind_callback = None
 
-_ = Translation('python-ucs-school').translate
+_ = Translation("python-ucs-school").translate
 
 
 def set_bind_function(bind_callback):
@@ -71,11 +75,11 @@ def set_credentials(dn, passwd):
     set_bind_function(lambda lo: lo.lo.bind(dn, passwd))
 
 
-USER_READ = 'ldap_user_read'
-USER_WRITE = 'ldap_user_write'
-MACHINE_READ = 'ldap_machine_read'
-MACHINE_WRITE = 'ldap_machine_write'
-ADMIN_WRITE = 'ldap_admin_write'
+USER_READ = "ldap_user_read"
+USER_WRITE = "ldap_user_write"
+MACHINE_READ = "ldap_machine_read"
+MACHINE_WRITE = "ldap_machine_write"
+ADMIN_WRITE = "ldap_admin_write"
 
 
 def LDAP_Connection(*connection_types):
@@ -101,14 +105,16 @@ def LDAP_Connection(*connection_types):
         ...
     """
 
-    if not connection_types:  # TODO: remove. We still need this for backwards compatibility with other broken decorators
+    if (
+        not connection_types
+    ):  # TODO: remove. We still need this for backwards compatibility with other broken decorators
         connection_types = (USER_READ,)
 
     def inner_wrapper(func):
         argspec = inspect.getargspec(func)
         argnames = set(argspec.args) | set(connection_types)
-        add_search_base = 'search_base' in argspec.args or argspec.keywords is not None
-        add_position = 'ldap_position' in argspec.args or argspec.keywords is not None
+        add_search_base = "search_base" in argspec.args or argspec.keywords is not None
+        add_position = "ldap_position" in argspec.args or argspec.keywords is not None
 
         def wrapper_func(*args, **kwargs):
             # set LDAP keyword arguments
@@ -120,37 +126,55 @@ def LDAP_Connection(*connection_types):
             if MACHINE_READ in argnames:
                 kwargs[MACHINE_READ], po = get_machine_connection(write=False)
             if USER_WRITE in argnames:
-                kwargs[USER_WRITE], po = get_user_connection(bind=__bind_callback, write=True)
+                kwargs[USER_WRITE], po = get_user_connection(
+                    bind=__bind_callback, write=True
+                )
             if USER_READ in argnames:
-                kwargs[USER_READ], po = get_user_connection(bind=__bind_callback, write=False)
+                kwargs[USER_READ], po = get_user_connection(
+                    bind=__bind_callback, write=False
+                )
             if add_position:
-                kwargs['ldap_position'] = po
+                kwargs["ldap_position"] = po
             if add_search_base:
-                MODULE.warn('Using deprecated LDAP_Connection.search_base parameter.')
+                MODULE.warn("Using deprecated LDAP_Connection.search_base parameter.")
                 from ucsschool.lib.models import School
-                if len(args) > 1 and isinstance(args[1], Message) and isinstance(args[1].options, dict) and args[1].options.get('school'):
-                    school = args[1].options['school']
+
+                if (
+                    len(args) > 1
+                    and isinstance(args[1], Message)
+                    and isinstance(args[1].options, dict)
+                    and args[1].options.get("school")
+                ):
+                    school = args[1].options["school"]
                 elif LDAP_Connection._school is None:
-                    lo = kwargs.get(USER_READ) or kwargs.get(USER_WRITE) or kwargs.get(MACHINE_READ) or kwargs.get(MACHINE_WRITE) or kwargs.get(ADMIN_WRITE)
+                    lo = (
+                        kwargs.get(USER_READ)
+                        or kwargs.get(USER_WRITE)
+                        or kwargs.get(MACHINE_READ)
+                        or kwargs.get(MACHINE_WRITE)
+                        or kwargs.get(ADMIN_WRITE)
+                    )
                     try:
                         school = School.from_binddn(lo)[0].name
-                        MODULE.info('Found school %r as ldap school base' % (school,))
+                        MODULE.info("Found school %r as ldap school base" % (school,))
                     except IndexError:
-                        MODULE.warn('All Schools: ERROR, COULD NOT FIND ANY OU!!!')
-                        school = ''
+                        MODULE.warn("All Schools: ERROR, COULD NOT FIND ANY OU!!!")
+                        school = ""
                     LDAP_Connection._school = school
                 else:
                     school = LDAP_Connection._school
-                kwargs['search_base'] = School.get_search_base(school)
+                kwargs["search_base"] = School.get_search_base(school)
             return func(*args, **kwargs)
+
         return wraps(func)(wrapper_func)
-#		def decorated(*args, **kwargs):
-#			try:
-#				return wrapper_func(*args, **kwargs)
-#			except ldap.INVALID_CREDENTIALS:
-#				reset_connection_cache()
-#				return wrapper_func(*args, **kwargs)
-#		return wraps(func)(decorated)
+
+    # 		def decorated(*args, **kwargs):
+    # 			try:
+    # 				return wrapper_func(*args, **kwargs)
+    # 			except ldap.INVALID_CREDENTIALS:
+    # 				reset_connection_cache()
+    # 				return wrapper_func(*args, **kwargs)
+    # 		return wraps(func)(decorated)
     return inner_wrapper
 
 
@@ -158,12 +182,17 @@ LDAP_Connection._school = None
 
 
 class SchoolSanitizer(StringSanitizer):
-
     def _sanitize(self, value, name, further_args):
         value = super(SchoolSanitizer, self)._sanitize(value, name, further_args)
 
         if not value and self.required:
-            raise UMC_Error(_('The request did not specify any school. You have to create a school before continuing. Use the "Schools" UMC module to create one.'), status=503, result={'no_school_found': True})
+            raise UMC_Error(
+                _(
+                    'The request did not specify any school. You have to create a school before continuing. Use the "Schools" UMC module to create one.'
+                ),
+                status=503,
+                result={"no_school_found": True},
+            )
         return value
 
 
@@ -171,27 +200,55 @@ class SchoolSearchBase(object):
     """Deprecated utility class that generates DNs of common school containers for a OU"""
 
     def __init__(self, availableSchools, school=None, dn=None, ldapBase=None):
-        self._ldapBase = ldapBase or ucr.get('ldap/base')
+        self._ldapBase = ldapBase or ucr.get("ldap/base")
 
         from ucsschool.lib.models import School
+
         self._school = school or availableSchools[0]
         self._schoolDN = dn or School.cache(self.school).dn
 
         # prefixes
-        self._containerAdmins = ucr.get('ucsschool/ldap/default/container/admins', 'admins')
-        self._containerStudents = ucr.get('ucsschool/ldap/default/container/pupils', 'schueler')
-        self._containerStaff = ucr.get('ucsschool/ldap/default/container/staff', 'mitarbeiter')
-        self._containerTeachersAndStaff = ucr.get('ucsschool/ldap/default/container/teachers-and-staff', 'lehrer und mitarbeiter')
-        self._containerTeachers = ucr.get('ucsschool/ldap/default/container/teachers', 'lehrer')
-        self._containerClass = ucr.get('ucsschool/ldap/default/container/class', 'klassen')
-        self._containerRooms = ucr.get('ucsschool/ldap/default/container/rooms', 'raeume')
-        self._examUserContainerName = ucr.get('ucsschool/ldap/default/container/exam', 'examusers')
-        self._examGroupNameTemplate = ucr.get('ucsschool/ldap/default/groupname/exam', 'OU%(ou)s-Klassenarbeit')
+        self._containerAdmins = ucr.get(
+            "ucsschool/ldap/default/container/admins", "admins"
+        )
+        self._containerStudents = ucr.get(
+            "ucsschool/ldap/default/container/pupils", "schueler"
+        )
+        self._containerStaff = ucr.get(
+            "ucsschool/ldap/default/container/staff", "mitarbeiter"
+        )
+        self._containerTeachersAndStaff = ucr.get(
+            "ucsschool/ldap/default/container/teachers-and-staff",
+            "lehrer und mitarbeiter",
+        )
+        self._containerTeachers = ucr.get(
+            "ucsschool/ldap/default/container/teachers", "lehrer"
+        )
+        self._containerClass = ucr.get(
+            "ucsschool/ldap/default/container/class", "klassen"
+        )
+        self._containerRooms = ucr.get(
+            "ucsschool/ldap/default/container/rooms", "raeume"
+        )
+        self._examUserContainerName = ucr.get(
+            "ucsschool/ldap/default/container/exam", "examusers"
+        )
+        self._examGroupNameTemplate = ucr.get(
+            "ucsschool/ldap/default/groupname/exam", "OU%(ou)s-Klassenarbeit"
+        )
 
-        self.group_prefix_students = ucr.get('ucsschool/ldap/default/groupprefix/pupils', 'schueler-')
-        self.group_prefix_teachers = ucr.get('ucsschool/ldap/default/groupprefix/teachers', 'lehrer-')
-        self.group_prefix_admins = ucr.get('ucsschool/ldap/default/groupprefix/admins', 'admins-')
-        self.group_prefix_staff = ucr.get('ucsschool/ldap/default/groupprefix/staff', 'mitarbeiter-')
+        self.group_prefix_students = ucr.get(
+            "ucsschool/ldap/default/groupprefix/pupils", "schueler-"
+        )
+        self.group_prefix_teachers = ucr.get(
+            "ucsschool/ldap/default/groupprefix/teachers", "lehrer-"
+        )
+        self.group_prefix_admins = ucr.get(
+            "ucsschool/ldap/default/groupprefix/admins", "admins-"
+        )
+        self.group_prefix_staff = ucr.get(
+            "ucsschool/ldap/default/groupprefix/staff", "mitarbeiter-"
+        )
 
     @classmethod
     def getOU(cls, dn):
@@ -216,7 +273,8 @@ class SchoolSearchBase(object):
         match = cls._RE_OUDN.search(dn)
         if match:
             return match.group(1)
-    _RE_OUDN = re.compile('(?:^|,)(ou=.*)$', re.I)
+
+    _RE_OUDN = re.compile("(?:^|,)(ou=.*)$", re.I)
 
     @property
     def dhcp(self):
@@ -252,7 +310,11 @@ class SchoolSearchBase(object):
 
     @property
     def classes(self):
-        return "cn=%s,cn=%s,cn=groups,%s" % (self._containerClass, self._containerStudents, self.schoolDN)
+        return "cn=%s,cn=%s,cn=groups,%s" % (
+            self._containerClass,
+            self._containerStudents,
+            self.schoolDN,
+        )
 
     @property
     def rooms(self):
@@ -304,24 +366,36 @@ class SchoolSearchBase(object):
 
     @property
     def educationalDCGroup(self):
-        return "cn=OU%s-DC-Edukativnetz,cn=ucsschool,cn=groups,%s" % (self.school, self._ldapBase)
+        return "cn=OU%s-DC-Edukativnetz,cn=ucsschool,cn=groups,%s" % (
+            self.school,
+            self._ldapBase,
+        )
 
     @property
     def educationalMemberGroup(self):
-        return "cn=OU%s-Member-Edukativnetz,cn=ucsschool,cn=groups,%s" % (self.school, self._ldapBase)
+        return "cn=OU%s-Member-Edukativnetz,cn=ucsschool,cn=groups,%s" % (
+            self.school,
+            self._ldapBase,
+        )
 
     @property
     def administrativeDCGroup(self):
-        return "cn=OU%s-DC-Verwaltungsnetz,cn=ucsschool,cn=groups,%s" % (self.school, self._ldapBase)
+        return "cn=OU%s-DC-Verwaltungsnetz,cn=ucsschool,cn=groups,%s" % (
+            self.school,
+            self._ldapBase,
+        )
 
     @property
     def administrativeMemberGroup(self):
-        return "cn=OU%s-Member-Verwaltungsnetz,cn=ucsschool,cn=groups,%s" % (self.school, self._ldapBase)
+        return "cn=OU%s-Member-Verwaltungsnetz,cn=ucsschool,cn=groups,%s" % (
+            self.school,
+            self._ldapBase,
+        )
 
     @property
     def examGroupName(self):
         # replace '%(ou)s' strings in generic exam_group_name
-        ucr_value_keywords = {'ou': self.school}
+        ucr_value_keywords = {"ou": self.school}
         return self._examGroupNameTemplate % ucr_value_keywords
 
     @property
@@ -332,7 +406,11 @@ class SchoolSearchBase(object):
         # a workgroup cannot lie in a sub directory
         if not groupDN.endswith(self.workgroups):
             return False
-        return len(univention.uldap.explodeDn(groupDN)) - len(univention.uldap.explodeDn(self.workgroups)) == 1
+        return (
+            len(univention.uldap.explodeDn(groupDN))
+            - len(univention.uldap.explodeDn(self.workgroups))
+            == 1
+        )
 
     def isGroup(self, groupDN):
         return groupDN.endswith(self.groups)
@@ -371,14 +449,14 @@ class SchoolBaseModule(Base):
             # FIXME: the statement above is not completely true, user_dn is None also if the UMC server could not detect it (for whatever reason)
             # therefore this workaround is a security whole which allows to execute ldap operations as machine account
             try:  # to get machine account password
-                MODULE.warn('Using machine account for local user: %s' % self.username)
-                with open('/etc/machine.secret', 'rb') as fd:
+                MODULE.warn("Using machine account for local user: %s" % self.username)
+                with open("/etc/machine.secret", "rb") as fd:
                     password = fd.read().strip()
-                user_dn = ucr.get('ldap/hostdn')
+                user_dn = ucr.get("ldap/hostdn")
             except IOError as exc:
                 password = None
                 user_dn = None
-                MODULE.warn('Cannot read /etc/machine.secret: %s' % (exc,))
+                MODULE.warn("Cannot read /etc/machine.secret: %s" % (exc,))
             lo.lo.bind(user_dn, password)
             return
         return super(SchoolBaseModule, self).bind_user_connection(lo)
@@ -387,71 +465,140 @@ class SchoolBaseModule(Base):
     def schools(self, request, ldap_user_read=None):
         """Returns a list of all available school"""
         from ucsschool.lib.models import School
+
         schools = School.from_binddn(ldap_user_read)
         if not schools:
-            raise UMC_Error(_('Could not find any school. You have to create a school before continuing. Use the "Schools" UMC module to create one.'), status=503, result={'no_school_found': True})
-        self.finished(request.id, [{'id': school.name, 'label': school.display_name} for school in schools])
+            raise UMC_Error(
+                _(
+                    'Could not find any school. You have to create a school before continuing. Use the "Schools" UMC module to create one.'
+                ),
+                status=503,
+                result={"no_school_found": True},
+            )
+        self.finished(
+            request.id,
+            [{"id": school.name, "label": school.display_name} for school in schools],
+        )
 
-    def _groups(self, ldap_connection, school, ldap_base, pattern=None, scope='sub'):
+    def _groups(self, ldap_connection, school, ldap_base, pattern=None, scope="sub"):
         """Returns a list of all groups of the given school"""
         # get list of all users matching the given pattern
         ldapFilter = None
         if pattern:
             ldapFilter = LDAP_Filter.forGroups(pattern)
-        groupresult = udm_modules.lookup('groups/group', None, ldap_connection, scope=scope, base=ldap_base, filter=ldapFilter)
-        name_pattern = re.compile('^%s-' % (re.escape(school)), flags=re.I)
-        return [{'id': grp.dn, 'label': name_pattern.sub('', grp['name'])} for grp in groupresult]
+        groupresult = udm_modules.lookup(
+            "groups/group",
+            None,
+            ldap_connection,
+            scope=scope,
+            base=ldap_base,
+            filter=ldapFilter,
+        )
+        name_pattern = re.compile("^%s-" % (re.escape(school)), flags=re.I)
+        return [
+            {"id": grp.dn, "label": name_pattern.sub("", grp["name"])}
+            for grp in groupresult
+        ]
 
-    @sanitize(school=SchoolSanitizer(required=True), pattern=StringSanitizer(default=''))
+    @sanitize(
+        school=SchoolSanitizer(required=True), pattern=StringSanitizer(default="")
+    )
     @LDAP_Connection()
     def classes(self, request, ldap_user_read=None):
         """Returns a list of all classes of the given school"""
-        school = request.options['school']
+        school = request.options["school"]
         from ucsschool.lib.models import SchoolClass
-        self.finished(request.id, self._groups(ldap_user_read, school, SchoolClass.get_container(school), request.options['pattern']))
 
-    @sanitize(school=SchoolSanitizer(required=True), pattern=StringSanitizer(default=''))
+        self.finished(
+            request.id,
+            self._groups(
+                ldap_user_read,
+                school,
+                SchoolClass.get_container(school),
+                request.options["pattern"],
+            ),
+        )
+
+    @sanitize(
+        school=SchoolSanitizer(required=True), pattern=StringSanitizer(default="")
+    )
     @LDAP_Connection()
     def workgroups(self, request, ldap_user_read=None):
         """Returns a list of all working groups of the given school"""
-        school = request.options['school']
+        school = request.options["school"]
         from ucsschool.lib.models import WorkGroup
-        self.finished(request.id, self._groups(ldap_user_read, school, WorkGroup.get_container(school), request.options['pattern'], 'one'))
 
-    @sanitize(school=SchoolSanitizer(required=True), pattern=StringSanitizer(default=''))
+        self.finished(
+            request.id,
+            self._groups(
+                ldap_user_read,
+                school,
+                WorkGroup.get_container(school),
+                request.options["pattern"],
+                "one",
+            ),
+        )
+
+    @sanitize(
+        school=SchoolSanitizer(required=True), pattern=StringSanitizer(default="")
+    )
     @LDAP_Connection()
     def groups(self, request, ldap_user_read=None):
         """Returns a list of all groups (classes and workgroups) of the given school"""
         # use as base the path for 'workgroups', as it incorporates workgroups and classes
         # when searching with scope 'sub'
-        school = request.options['school']
+        school = request.options["school"]
         from ucsschool.lib.models import WorkGroup
-        self.finished(request.id, self._groups(ldap_user_read, school, WorkGroup.get_container(school), request.options['pattern']))
 
-    @sanitize(school=SchoolSanitizer(required=True), pattern=StringSanitizer(default=''))
+        self.finished(
+            request.id,
+            self._groups(
+                ldap_user_read,
+                school,
+                WorkGroup.get_container(school),
+                request.options["pattern"],
+            ),
+        )
+
+    @sanitize(
+        school=SchoolSanitizer(required=True), pattern=StringSanitizer(default="")
+    )
     @LDAP_Connection()
     def rooms(self, request, ldap_user_read=None):
         """Returns a list of all available school"""
-        school = request.options['school']
+        school = request.options["school"]
         from ucsschool.lib.models import ComputerRoom
-        self.finished(request.id, self._groups(ldap_user_read, school, ComputerRoom.get_container(school), request.options['pattern']))
 
-    def _users(self, ldap_connection, school, group=None, user_type=None, pattern=''):
+        self.finished(
+            request.id,
+            self._groups(
+                ldap_user_read,
+                school,
+                ComputerRoom.get_container(school),
+                request.options["pattern"],
+            ),
+        )
+
+    def _users(self, ldap_connection, school, group=None, user_type=None, pattern=""):
         """Returns a list of all users given 'pattern', 'school' (search base) and 'group'"""
         import ucsschool.lib.models
+
         if not user_type:
             classes = [ucsschool.lib.models.User]
-        elif user_type.lower() in ('teachers', 'teacher'):
-            classes = [ucsschool.lib.models.Teacher, ucsschool.lib.models.TeachersAndStaff]
-        elif user_type.lower() in ('student', 'students', 'pupil', 'pupils'):
+        elif user_type.lower() in ("teachers", "teacher"):
+            classes = [
+                ucsschool.lib.models.Teacher,
+                ucsschool.lib.models.TeachersAndStaff,
+            ]
+        elif user_type.lower() in ("student", "students", "pupil", "pupils"):
             classes = [ucsschool.lib.models.Student]
         else:
-            raise TypeError('user_type %r unknown.' % (user_type,))
+            raise TypeError("user_type %r unknown." % (user_type,))
 
         # open the group
         groupObj = None
-        if group not in (None, 'None'):
-            groupModule = udm_modules.get('groups/group')
+        if group not in (None, "None"):
+            groupModule = udm_modules.get("groups/group")
             groupObj = groupModule.object(None, ldap_connection, None, group)
             groupObj.open()
 
@@ -462,17 +609,26 @@ class SchoolBaseModule(Base):
             # contains far less users than all available users. The else-block opens
             # all available users ==> high LDAP load! (Bug #42167)
             users = []
-            for userdn in set(groupObj['users']):
+            for userdn in set(groupObj["users"]):
                 search_filter_list = [LDAP_Filter.forSchool(school)]
                 if pattern:
                     search_filter_list.append(LDAP_Filter.forUsers(pattern))
                 # concatenate LDAP filters
-                search_filter = unicode(conjunction('&', [parse(subfilter) for subfilter in search_filter_list]))
+                search_filter = unicode(
+                    conjunction(
+                        "&", [parse(subfilter) for subfilter in search_filter_list]
+                    )
+                )
                 for cls in classes:
                     try:
-                        udm_obj = cls.get_only_udm_obj(ldap_connection, search_filter, base=userdn)
+                        udm_obj = cls.get_only_udm_obj(
+                            ldap_connection, search_filter, base=userdn
+                        )
                     except noObject:
-                        MODULE.error('Possible group inconsistency detected: %r contains member %r but member was not found in LDAP' % (group, userdn))
+                        MODULE.error(
+                            "Possible group inconsistency detected: %r contains member %r but member was not found in LDAP"
+                            % (group, userdn)
+                        )
                         udm_obj = None
 
                     if udm_obj is not None:
@@ -487,35 +643,43 @@ class SchoolBaseModule(Base):
             # be aware that this search opens all user objects of specified type and may take some time!
             users = []
             for cls in classes:
-                _users = cls.get_all(ldap_connection, school, LDAP_Filter.forUsers(pattern))
+                _users = cls.get_all(
+                    ldap_connection, school, LDAP_Filter.forUsers(pattern)
+                )
                 users.extend(user.get_udm_object(ldap_connection) for user in _users)
         return users
 
-    def _users_ldap(self, ldap_connection, school, group=None, user_type=None, pattern='', attr=None):
+    def _users_ldap(
+        self, ldap_connection, school, group=None, user_type=None, pattern="", attr=None
+    ):
         """
         Returns a list of LDAP query result tuples (dn, attr) of all users
         given  `pattern`, `school` (search base) and `group`.
         """
         import ucsschool.lib.models
+
         if not user_type:
             classes = [ucsschool.lib.models.User]
-        elif user_type.lower() in ('teachers', 'teacher'):
-            classes = [ucsschool.lib.models.Teacher, ucsschool.lib.models.TeachersAndStaff]
-        elif user_type.lower() in ('student', 'students', 'pupil', 'pupils'):
+        elif user_type.lower() in ("teachers", "teacher"):
+            classes = [
+                ucsschool.lib.models.Teacher,
+                ucsschool.lib.models.TeachersAndStaff,
+            ]
+        elif user_type.lower() in ("student", "students", "pupil", "pupils"):
             classes = [ucsschool.lib.models.Student]
         else:
-            raise TypeError('user_type %r unknown.' % (user_type,))
+            raise TypeError("user_type %r unknown." % (user_type,))
 
         attr = attr or []
         users = []
-        user_module = udm_modules.get('users/user')
+        user_module = udm_modules.get("users/user")
 
-        if group not in (None, 'None'):
+        if group not in (None, "None"):
             # The following code block prevents a massive performance loss if the group
             # contains far less users than all available users. The else-block opens
             # all available users ==> high LDAP load! (Bug #42167)
 
-            user_dns = ldap_connection.get(group).get('uniqueMember', [])
+            user_dns = ldap_connection.get(group).get("uniqueMember", [])
             for userdn in set(user_dns):
                 search_filter_list = [LDAP_Filter.forSchool(school)]
                 if pattern:
@@ -523,95 +687,104 @@ class SchoolBaseModule(Base):
                 for cls in classes:
                     search_filter_list.append(cls.type_filter)
                     # concatenate LDAP filters
-                    search_filter = unicode(user_module.lookup_filter(
-                        conjunction(
-                            '&',
-                            [parse(subfilter) for subfilter in search_filter_list]
-                        )))
-                    ldap_objs = ldap_connection.search(search_filter, base=userdn, attr=attr)
+                    search_filter = unicode(
+                        user_module.lookup_filter(
+                            conjunction(
+                                "&",
+                                [parse(subfilter) for subfilter in search_filter_list],
+                            )
+                        )
+                    )
+                    ldap_objs = ldap_connection.search(
+                        search_filter, base=userdn, attr=attr
+                    )
                     if len(ldap_objs) == 1:
                         users.append(ldap_objs[0])
                     # else:
-                        # either: 'Possible group inconsistency detected: %r contains member %r but member was not
-                        #         found in LDAP' % (group, userdn))
-                        # or: DN does not belong to teacher/student (WrongModel)
-                        # in both cases: ignore user
+                    # either: 'Possible group inconsistency detected: %r contains member %r but member was not
+                    #         found in LDAP' % (group, userdn))
+                    # or: DN does not belong to teacher/student (WrongModel)
+                    # in both cases: ignore user
         else:
             for cls in classes:
-                filter_s = unicode(user_module.lookup_filter(
-                    conjunction(
-                        '&',
-                        [
-                            parse(LDAP_Filter.forSchool(school)),
-                            parse(LDAP_Filter.forUsers(pattern)),
-                            parse(cls.type_filter),
-                        ]
-                    )))
+                filter_s = unicode(
+                    user_module.lookup_filter(
+                        conjunction(
+                            "&",
+                            [
+                                parse(LDAP_Filter.forSchool(school)),
+                                parse(LDAP_Filter.forUsers(pattern)),
+                                parse(cls.type_filter),
+                            ],
+                        )
+                    )
+                )
                 users.extend(ldap_connection.search(filter=filter_s, attr=attr))
         return users
 
 
 class LDAP_Filter:
-
     @staticmethod
     def forSchool(school):
-        return filter_format('(ucsschoolSchool=%s)', [school])
+        return filter_format("(ucsschoolSchool=%s)", [school])
 
     @staticmethod
     def forUsers(pattern):
-        return LDAP_Filter.forAll(pattern, ['lastname', 'username', 'firstname'])
+        return LDAP_Filter.forAll(pattern, ["lastname", "username", "firstname"])
 
     @staticmethod
     def forGroups(pattern, school=None):
         # school parameter is deprecated
-        return LDAP_Filter.forAll(pattern, ['name', 'description'])
+        return LDAP_Filter.forAll(pattern, ["name", "description"])
 
     @staticmethod
     def forComputers(pattern):
-        return LDAP_Filter.forAll(pattern, ['name', 'description'], ['mac', 'ip'])
+        return LDAP_Filter.forAll(pattern, ["name", "description"], ["mac", "ip"])
 
-    regWhiteSpaces = re.compile(r'\s+')
+    regWhiteSpaces = re.compile(r"\s+")
 
     @staticmethod
     def forAll(pattern, subMatch=[], fullMatch=[], prefixes={}):
         expressions = []
-        for iword in LDAP_Filter.regWhiteSpaces.split(pattern or ''):
+        for iword in LDAP_Filter.regWhiteSpaces.split(pattern or ""):
             # evaluate the subexpression (search word over different attributes)
             subexpr = []
             # all expressions for a full string match
             iword = escape_filter_chars(iword)
             if iword:
-                subexpr += ['(%s=%s)' % (jattr, iword) for jattr in fullMatch]
+                subexpr += ["(%s=%s)" % (jattr, iword) for jattr in fullMatch]
 
             # all expressions for a substring match
             if not iword:
-                iword = '*'
-            elif iword.find('*') < 0:
-                iword = '*%s*' % iword
-            subexpr += ['(%s=%s%s)' % (jattr, prefixes.get(jattr, ''), iword) for jattr in subMatch]
+                iword = "*"
+            elif iword.find("*") < 0:
+                iword = "*%s*" % iword
+            subexpr += [
+                "(%s=%s%s)" % (jattr, prefixes.get(jattr, ""), iword)
+                for jattr in subMatch
+            ]
 
             # append to list of all search expressions
-            expressions.append('(|%s)' % ''.join(subexpr))
+            expressions.append("(|%s)" % "".join(subexpr))
 
         if not expressions:
-            return ''
-        return '(&%s)' % ''.join(expressions)
+            return ""
+        return "(&%s)" % "".join(expressions)
 
 
 class Display:
-
     @staticmethod
     def user(udm_object):
-        fullname = udm_object['lastname']
-        if 'firstname' in udm_object and udm_object['firstname']:
-            fullname += ', %(firstname)s' % udm_object
+        fullname = udm_object["lastname"]
+        if "firstname" in udm_object and udm_object["firstname"]:
+            fullname += ", %(firstname)s" % udm_object
 
-        return fullname + ' (%(username)s)' % udm_object
+        return fullname + " (%(username)s)" % udm_object
 
     @staticmethod
     def user_ldap(ldap_object):
-        fullname = ldap_object.get('sn', [''])[0]
-        if ldap_object.get('givenName', [''])[0]:
-            fullname += ', %s' % ldap_object['givenName'][0]
+        fullname = ldap_object.get("sn", [""])[0]
+        if ldap_object.get("givenName", [""])[0]:
+            fullname += ", %s" % ldap_object["givenName"][0]
 
-        return fullname + ' (%s)' % ldap_object['uid'][0]
+        return fullname + " (%s)" % ldap_object["uid"][0]

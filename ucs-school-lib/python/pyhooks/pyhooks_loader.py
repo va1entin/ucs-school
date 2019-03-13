@@ -44,7 +44,8 @@ try:
     from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar
     import logging.Logger
     from ucsschool.lib.pyhooks import PyHook
-    PyHookTV = TypeVar('PyHookTV', bound=PyHook)
+
+    PyHookTV = TypeVar("PyHookTV", bound=PyHook)
 except ImportError:
     pass
 
@@ -81,7 +82,9 @@ class PyHooksLoader(object):
         self.base_class_name = base_class.__name__
         self.logger = logger
         if filter_func:
-            assert callable(filter_func), "'filter_func' must be a callable, got {!r}.".format(filter_func)
+            assert callable(
+                filter_func
+            ), "'filter_func' must be a callable, got {!r}.".format(filter_func)
         self._filter_func = filter_func
         self._pyhook_obj_cache = None  # type: Dict[str, List[Callable[[...], Any]]]
 
@@ -106,25 +109,42 @@ class PyHooksLoader(object):
         :rtype: list[type]
         """
         if self._hook_classes.get(self.base_class_name) is None:
-            self.logger.info("Searching for hooks of type %r in: %s...", self.base_class_name, self.base_dir)
+            self.logger.info(
+                "Searching for hooks of type %r in: %s...",
+                self.base_class_name,
+                self.base_dir,
+            )
             self._hook_classes[self.base_class_name] = list()
             if self._filter_func:
                 filter_func = self._filter_func
             else:
                 filter_func = lambda x: True
             for filename in listdir(self.base_dir):
-                if filename.endswith(".py") and os.path.isfile(os.path.join(self.base_dir, filename)):
+                if filename.endswith(".py") and os.path.isfile(
+                    os.path.join(self.base_dir, filename)
+                ):
                     info = imp.find_module(filename[:-3], [self.base_dir])
-                    a_class = self._load_hook_class(filename[:-3], info, self.base_class)
+                    a_class = self._load_hook_class(
+                        filename[:-3], info, self.base_class
+                    )
                     if a_class:
                         if filter_func(a_class):
                             self._hook_classes[self.base_class_name].append(a_class)
                         else:
-                            self.logger.info("Hook class %r filtered out by %s().", a_class.__name__, filter_func.func_name)
-            self.logger.info("Found hook classes: %s", ", ".join(c.__name__ for c in self._hook_classes[self.base_class_name]))
+                            self.logger.info(
+                                "Hook class %r filtered out by %s().",
+                                a_class.__name__,
+                                filter_func.func_name,
+                            )
+            self.logger.info(
+                "Found hook classes: %s",
+                ", ".join(c.__name__ for c in self._hook_classes[self.base_class_name]),
+            )
         return self._hook_classes[self.base_class_name]
 
-    def get_hook_objects(self, *args, **kwargs):  # type: (*Any, **Any) -> Dict[str, List[Callable[[...], Any]]]
+    def get_hook_objects(
+        self, *args, **kwargs
+    ):  # type: (*Any, **Any) -> Dict[str, List[Callable[[...], Any]]]
         """
         Get initialized hook objects, sorted by method and priority.
 
@@ -135,32 +155,64 @@ class PyHooksLoader(object):
         :rtype: Dict[str, List[Callable]]
         """
         if self._pyhook_obj_cache is None:
-            pyhook_objs = [pyhook_cls(*args, **kwargs) for pyhook_cls in self.get_hook_classes()]
+            pyhook_objs = [
+                pyhook_cls(*args, **kwargs) for pyhook_cls in self.get_hook_classes()
+            ]
 
             # fill cache: find all enabled hook methods
-            methods = defaultdict(list)  # type: Dict[str, List[Tuple[Callable[[...], Any], int]]]
+            methods = defaultdict(
+                list
+            )  # type: Dict[str, List[Tuple[Callable[[...], Any], int]]]
             for pyhook_obj in pyhook_objs:
-                if not hasattr(pyhook_obj, "priority") or not isinstance(pyhook_obj.priority, dict):
-                    self.logger.warn('Ignoring hook %r without/invalid "priority" attribute.', pyhook_obj)
+                if not hasattr(pyhook_obj, "priority") or not isinstance(
+                    pyhook_obj.priority, dict
+                ):
+                    self.logger.warn(
+                        'Ignoring hook %r without/invalid "priority" attribute.',
+                        pyhook_obj,
+                    )
                     continue
                 for meth_name, prio in iteritems(pyhook_obj.priority):
-                    if hasattr(pyhook_obj, meth_name) and isinstance(pyhook_obj.priority.get(meth_name), int):
-                        methods[meth_name].append((getattr(pyhook_obj, meth_name), pyhook_obj.priority[meth_name]))
-                    elif hasattr(pyhook_obj, meth_name) and pyhook_obj.priority.get(meth_name) is None:
+                    if hasattr(pyhook_obj, meth_name) and isinstance(
+                        pyhook_obj.priority.get(meth_name), int
+                    ):
+                        methods[meth_name].append(
+                            (
+                                getattr(pyhook_obj, meth_name),
+                                pyhook_obj.priority[meth_name],
+                            )
+                        )
+                    elif (
+                        hasattr(pyhook_obj, meth_name)
+                        and pyhook_obj.priority.get(meth_name) is None
+                    ):
                         pass
                     else:
-                        self.logger.warn('Ignoring invalid priority item (%r : %r).', meth_name, prio)
+                        self.logger.warn(
+                            "Ignoring invalid priority item (%r : %r).", meth_name, prio
+                        )
             # sort by priority
             self._pyhook_obj_cache = dict()
             for meth_name, meth_list in iteritems(methods):
-                self._pyhook_obj_cache[meth_name] = [x[0] for x in sorted(meth_list, key=lambda x: x[1], reverse=True)]
+                self._pyhook_obj_cache[meth_name] = [
+                    x[0] for x in sorted(meth_list, key=lambda x: x[1], reverse=True)
+                ]
 
             self.logger.info(
                 "Loaded hooks: %r.",
-                dict([
-                    (meth_name, ["{}.{}".format(m.im_class.__name__, m.im_func.func_name) for m in meths])
-                    for meth_name, meths in iteritems(self._pyhook_obj_cache)
-                ]))
+                dict(
+                    [
+                        (
+                            meth_name,
+                            [
+                                "{}.{}".format(m.im_class.__name__, m.im_func.func_name)
+                                for m in meths
+                            ],
+                        )
+                        for meth_name, meths in iteritems(self._pyhook_obj_cache)
+                    ]
+                ),
+            )
         return self._pyhook_obj_cache
 
     @staticmethod
@@ -169,6 +221,10 @@ class PyHooksLoader(object):
         res = imp.load_module(cls_name, *info)
         for thing in dir(res):
             candidate = getattr(res, thing)
-            if inspect.isclass(candidate) and issubclass(candidate, super_class) and candidate is not super_class:
+            if (
+                inspect.isclass(candidate)
+                and issubclass(candidate, super_class)
+                and candidate is not super_class
+            ):
                 return candidate
         return None

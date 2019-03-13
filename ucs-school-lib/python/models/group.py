@@ -34,7 +34,15 @@ from ldap.dn import str2dn
 
 from univention.admin.uexceptions import noObject
 
-from ucsschool.lib.models.attributes import GroupName, Description, Attribute, SchoolClassName, Hosts, Users, Roles
+from ucsschool.lib.models.attributes import (
+    GroupName,
+    Description,
+    Attribute,
+    SchoolClassName,
+    Hosts,
+    Users,
+    Roles,
+)
 from ucsschool.lib.models.base import RoleSupportMixin, UCSSchoolHelperAbstractClass
 from ucsschool.lib.models.misc import OU, Container
 from ucsschool.lib.models.share import ClassShare, WorkGroupShare
@@ -44,39 +52,41 @@ from ucsschool.lib.roles import role_computer_room, role_school_class, role_work
 
 
 class _MayHaveSchoolPrefix(object):
-
     def get_relative_name(self):
         # schoolname-1a => 1a
-        if self.school and self.name.lower().startswith('%s-' % self.school.lower()):
-            return self.name[len(self.school) + 1:]
+        if self.school and self.name.lower().startswith("%s-" % self.school.lower()):
+            return self.name[len(self.school) + 1 :]
         return self.name
 
     def get_replaced_name(self, school):
         if self.name != self.get_relative_name():
-            return '%s-%s' % (school, self.get_relative_name())
+            return "%s-%s" % (school, self.get_relative_name())
         return self.name
 
 
 class _MayHaveSchoolSuffix(object):
-
     def get_relative_name(self):
         # schoolname-1a => 1a
-        if self.school and self.name.lower().endswith('-%s' % self.school.lower()) or self.name.lower().endswith(' %s' % self.school.lower()):
-            return self.name[:-(len(self.school) + 1)]
+        if (
+            self.school
+            and self.name.lower().endswith("-%s" % self.school.lower())
+            or self.name.lower().endswith(" %s" % self.school.lower())
+        ):
+            return self.name[: -(len(self.school) + 1)]
         return self.name
 
     def get_replaced_name(self, school):
         if self.name != self.get_relative_name():
             delim = self.name[len(self.get_relative_name())]
-            return '%s%s%s' % (self.get_relative_name(), delim, school)
+            return "%s%s%s" % (self.get_relative_name(), delim, school)
         return self.name
 
 
 class Group(RoleSupportMixin, UCSSchoolHelperAbstractClass):
-    name = GroupName(_('Name'))
-    description = Description(_('Description'))
-    users = Users(_('Users'))
-    ucsschool_roles = Roles(_('Roles'), aka=['Roles'])
+    name = GroupName(_("Name"))
+    description = Description(_("Description"))
+    users = Users(_("Users"))
+    ucsschool_roles = Roles(_("Roles"), aka=["Roles"])
 
     @classmethod
     def get_container(cls, school):
@@ -120,52 +130,55 @@ class Group(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         return cls
 
     def add_umc_policy(self, policy_dn, lo):
-        if not policy_dn or policy_dn.lower() == 'none':
-            logger.warning('No policy added to %r', self)
+        if not policy_dn or policy_dn.lower() == "none":
+            logger.warning("No policy added to %r", self)
             return
         try:
             policy = UMCPolicy.from_dn(policy_dn, self.school, lo)
         except noObject:
-            logger.warning('Object to be referenced does not exist (or is no UMC-Policy): %s', policy_dn)
+            logger.warning(
+                "Object to be referenced does not exist (or is no UMC-Policy): %s",
+                policy_dn,
+            )
         else:
             policy.attach(self, lo)
 
     def build_hook_line(self, hook_time, func_name):
         code = self._map_func_name_to_code(func_name)
-        if code != 'M':
-            return self._build_hook_line(code, self.school, self.name, self.description, )
+        if code != "M":
+            return self._build_hook_line(code, self.school, self.name, self.description)
         else:
             # This is probably a bug. See ucs-school-import and Bug #34736
             old_name = self.get_name_from_dn(self.old_dn)
             new_name = self.name
             if old_name != new_name:
-                return self._build_hook_line(code, old_name, new_name, )
+                return self._build_hook_line(code, old_name, new_name)
 
     class Meta:
-        udm_module = 'groups/group'
+        udm_module = "groups/group"
         name_is_unique = True
 
 
 class BasicGroup(Group):
     school = None
-    container = Attribute(_('Container'), required=True)
+    container = Attribute(_("Container"), required=True)
 
     def __init__(self, name=None, school=None, **kwargs):
-        if 'container' not in kwargs:
-            kwargs['container'] = 'cn=groups,%s' % ucr.get('ldap/base')
+        if "container" not in kwargs:
+            kwargs["container"] = "cn=groups,%s" % ucr.get("ldap/base")
         super(BasicGroup, self).__init__(name=name, school=school, **kwargs)
 
     def create_without_hooks(self, lo, validate):
         # prepare LDAP: create containers where this basic group lives if necessary
-        container_dn = self.get_own_container()[:-len(ucr.get('ldap/base')) - 1]
+        container_dn = self.get_own_container()[: -len(ucr.get("ldap/base")) - 1]
         containers = str2dn(container_dn)
-        super_container_dn = ucr.get('ldap/base')
+        super_container_dn = ucr.get("ldap/base")
         for container_info in reversed(containers):
             dn_part, cn = container_info[0][0:2]
-            if dn_part.lower() == 'ou':
+            if dn_part.lower() == "ou":
                 container = OU(name=cn)
             else:
-                container = Container(name=cn, school='', group_path='1')
+                container = Container(name=cn, school="", group_path="1")
             container.position = super_container_dn
             super_container_dn = container.create(lo, False)
         return super(BasicGroup, self).create_without_hooks(lo, validate)
@@ -178,7 +191,7 @@ class BasicGroup(Group):
 
     @classmethod
     def get_container(cls, school=None):
-        return ucr.get('ldap/base')
+        return ucr.get("ldap/base")
 
 
 class BasicSchoolGroup(BasicGroup):
@@ -190,7 +203,7 @@ class SchoolGroup(Group, _MayHaveSchoolSuffix):
 
 
 class SchoolClass(Group, _MayHaveSchoolPrefix):
-    name = SchoolClassName(_('Name'))
+    name = SchoolClassName(_("Name"))
 
     default_roles = [role_school_class]
     _school_in_name_prefix = True
@@ -215,9 +228,13 @@ class SchoolClass(Group, _MayHaveSchoolPrefix):
                 # if the name changed
                 # from_school_group will have initialized
                 # share.old_dn incorrectly
-                share = self.ShareClass(name=old_name, school=self.school, school_group=self)
+                share = self.ShareClass(
+                    name=old_name, school=self.school, school_group=self
+                )
                 share.name = self.name
-        success = super(SchoolClass, self).modify_without_hooks(lo, validate, move_if_necessary)
+        success = super(SchoolClass, self).modify_without_hooks(
+            lo, validate, move_if_necessary
+        )
         if success:
             lo_machine = self.get_machine_connection()
             if share.exists(lo_machine):
@@ -238,7 +255,7 @@ class SchoolClass(Group, _MayHaveSchoolPrefix):
 
     def to_dict(self):
         ret = super(SchoolClass, self).to_dict()
-        ret['name'] = self.get_relative_name()
+        ret["name"] = self.get_relative_name()
         return ret
 
     @classmethod
@@ -267,14 +284,14 @@ class WorkGroup(SchoolClass, _MayHaveSchoolPrefix):
 
 
 class ComputerRoom(Group, _MayHaveSchoolPrefix):
-    hosts = Hosts(_('Hosts'))
+    hosts = Hosts(_("Hosts"))
 
     users = None
     default_roles = [role_computer_room]
 
     def to_dict(self):
         ret = super(ComputerRoom, self).to_dict()
-        ret['name'] = self.get_relative_name()
+        ret["name"] = self.get_relative_name()
         return ret
 
     @classmethod
@@ -283,6 +300,7 @@ class ComputerRoom(Group, _MayHaveSchoolPrefix):
 
     def get_computers(self, ldap_connection):
         from ucsschool.lib.models.computer import SchoolComputer
+
         for host in self.hosts:
             try:
                 yield SchoolComputer.from_dn(host, self.school, ldap_connection)

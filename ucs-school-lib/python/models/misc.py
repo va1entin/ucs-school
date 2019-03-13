@@ -45,21 +45,20 @@ class MailDomain(UCSSchoolHelperAbstractClass):
 
     @classmethod
     def get_container(cls, school=None):
-        return 'cn=domain,cn=mail,%s' % ucr.get('ldap/base')
+        return "cn=domain,cn=mail,%s" % ucr.get("ldap/base")
 
     class Meta:
-        udm_module = 'mail/domain'
+        udm_module = "mail/domain"
 
 
 class OU(UCSSchoolHelperAbstractClass):
-
     def create(self, lo, validate=True):
-        logger.info('Creating %r', self)
-        pos = udm_uldap.position(ucr.get('ldap/base'))
+        logger.info("Creating %r", self)
+        pos = udm_uldap.position(ucr.get("ldap/base"))
         pos.setDn(self.position)
         udm_obj = udm_modules.get(self._meta.udm_module).object(None, lo, pos)
         udm_obj.open()
-        udm_obj['name'] = self.name
+        udm_obj["name"] = self.name
         try:
             self.do_create(udm_obj, lo)
         except objectExists as exc:
@@ -78,18 +77,18 @@ class OU(UCSSchoolHelperAbstractClass):
         return cls.get_search_base(school).schoolDN
 
     class Meta:
-        udm_module = 'container/ou'
+        udm_module = "container/ou"
 
 
 class Container(OU):
-    user_path = ContainerPath(_('User path'), udm_name='userPath')
-    computer_path = ContainerPath(_('Computer path'), udm_name='computerPath')
-    network_path = ContainerPath(_('Network path'), udm_name='networkPath')
-    group_path = ContainerPath(_('Group path'), udm_name='groupPath')
-    dhcp_path = ContainerPath(_('DHCP path'), udm_name='dhcpPath')
-    policy_path = ContainerPath(_('Policy path'), udm_name='policyPath')
-    share_path = ContainerPath(_('Share path'), udm_name='sharePath')
-    printer_path = ContainerPath(_('Printer path'), udm_name='printerPath')
+    user_path = ContainerPath(_("User path"), udm_name="userPath")
+    computer_path = ContainerPath(_("Computer path"), udm_name="computerPath")
+    network_path = ContainerPath(_("Network path"), udm_name="networkPath")
+    group_path = ContainerPath(_("Group path"), udm_name="groupPath")
+    dhcp_path = ContainerPath(_("DHCP path"), udm_name="dhcpPath")
+    policy_path = ContainerPath(_("Policy path"), udm_name="policyPath")
+    share_path = ContainerPath(_("Share path"), udm_name="sharePath")
+    printer_path = ContainerPath(_("Printer path"), udm_name="printerPath")
 
     class Meta:
-        udm_module = 'container/cn'
+        udm_module = "container/cn"

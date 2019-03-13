@@ -50,7 +50,12 @@ from univention.management.console.modules.sanitizers import LDAPSearchSanitizer
 
 from ucsschool.lib.schoolldap import SchoolSearchBase, LDAP_Connection
 from ucsschool.lib.models.meta import UCSSchoolHelperMetaClass
-from ucsschool.lib.models.attributes import CommonName, Roles, SchoolAttribute, ValidationError
+from ucsschool.lib.models.attributes import (
+    CommonName,
+    Roles,
+    SchoolAttribute,
+    ValidationError,
+)
 from ucsschool.lib.models.utils import ucr, _, logger
 from ucsschool.lib.roles import create_ucsschool_role_string
 
@@ -65,32 +70,35 @@ class NoObject(noObject):
 
 
 class UnknownModel(NoObject):
-
     def __init__(self, dn, cls):
         self.dn = dn
         self.wrong_model = cls
-        super(UnknownModel, self).__init__('No python class: %r is not a %s' % (dn, cls.__name__))
+        super(UnknownModel, self).__init__(
+            "No python class: %r is not a %s" % (dn, cls.__name__)
+        )
 
 
 class WrongModel(NoObject):
-
     def __init__(self, dn, model, wrong_model):
         self.dn = dn
         self.model = model
         self.wrong_model = wrong_model
-        super(WrongModel, self).__init__('Wrong python class: %r is not a %r but a %r' % (dn, wrong_model.__name__, model.__name__))
+        super(WrongModel, self).__init__(
+            "Wrong python class: %r is not a %r but a %r"
+            % (dn, wrong_model.__name__, model.__name__)
+        )
 
 
 class WrongObjectType(NoObject):
-
     def __init__(self, dn, cls):
         self.dn = dn
         self.wrong_model = cls
-        super(WrongObjectType, self).__init__('Wrong objectClass: %r is not a %r.' % (dn, cls.__name__))
+        super(WrongObjectType, self).__init__(
+            "Wrong objectClass: %r is not a %r." % (dn, cls.__name__)
+        )
 
 
 class MultipleObjectsError(Exception):
-
     def __init__(self, objs, *args, **kwargs):
         super(MultipleObjectsError, self).__init__(*args, **kwargs)
         self.objs = objs
@@ -206,6 +214,7 @@ class UCSSchoolHelperAbstractClass(object):
                     class Meta:
                             hook_path = 'computer'
     """
+
     __metaclass__ = UCSSchoolHelperMetaClass
     _cache = {}
 
@@ -213,23 +222,23 @@ class UCSSchoolHelperAbstractClass(object):
     _initialized_udm_modules = []
     _empty_hook_paths = set()
 
-    hook_sep_char = '\t'
-    hook_path = '/usr/share/ucs-school-import/hooks/'
+    hook_sep_char = "\t"
+    hook_path = "/usr/share/ucs-school-import/hooks/"
 
-    name = CommonName(_('Name'), aka=['Name'])
-    school = SchoolAttribute(_('School'), aka=['School'])
+    name = CommonName(_("Name"), aka=["Name"])
+    school = SchoolAttribute(_("School"), aka=["School"])
 
     @classmethod
     def cache(cls, *args, **kwargs):
-        '''Initializes a new instance and caches it for subsequent calls.
+        """Initializes a new instance and caches it for subsequent calls.
         Useful when using School.cache(school_name) a lot in different
         functions, in loops, etc.
-        '''
+        """
         args = list(args)
         if args:
-            kwargs['name'] = args.pop(0)
+            kwargs["name"] = args.pop(0)
         if args:
-            kwargs['school'] = args.pop(0)
+            kwargs["school"] = args.pop(0)
         key = [cls.__name__] + [(k, kwargs[k]) for k in sorted(kwargs)]
         key = tuple(key)
         if key not in cls._cache:
@@ -242,6 +251,7 @@ class UCSSchoolHelperAbstractClass(object):
         from ucsschool.lib.models.user import User
         from ucsschool.lib.models.network import Network
         from ucsschool.lib.models.utils import _pw_length_cache
+
         cls._cache.clear()
         # cls._search_base_cache.clear() # useless to clear
         _pw_length_cache.clear()
@@ -257,14 +267,14 @@ class UCSSchoolHelperAbstractClass(object):
 
     @classmethod
     def supports_school(cls):
-        return 'school' in cls._attributes
+        return "school" in cls._attributes
 
     @classmethod
     def supports_schools(cls):
-        return 'schools' in cls._attributes
+        return "schools" in cls._attributes
 
     def __init__(self, name=None, school=None, **kwargs):
-        '''Initializes a new instance with kwargs.
+        """Initializes a new instance with kwargs.
         Not every kwarg is accepted, though: The name
         must be defined as a attribute at class level
         (or by a base class). All attributes are
@@ -273,11 +283,11 @@ class UCSSchoolHelperAbstractClass(object):
         in __init__ will determine the old_dn, changing
         it after __init__ will result in trying to move the
         object!
-        '''
+        """
         self._udm_obj_searched = False
         self._udm_obj = None
-        kwargs['name'] = name
-        kwargs['school'] = school
+        kwargs["name"] = name
+        kwargs["school"] = school
         for key, attr in self._attributes.items():
             default = attr.value_default
             if callable(default):
@@ -308,27 +318,32 @@ class UCSSchoolHelperAbstractClass(object):
 
     @property
     def dn(self):
-        '''Generates a DN where the lib would assume this
+        """Generates a DN where the lib would assume this
         instance to be. Changing name or school of self will most
         likely change the outcome of self.dn as well
-        '''
+        """
         if self.name and self.position:
             name = self._meta.ldap_map_function(self.name)
-            return '%s=%s,%s' % (self._meta.ldap_name_part, escape_dn_chars(name), self.position)
+            return "%s=%s,%s" % (
+                self._meta.ldap_name_part,
+                escape_dn_chars(name),
+                self.position,
+            )
         return self.old_dn
 
     def set_dn(self, dn):
-        '''Does not really set dn, as this is generated
+        """Does not really set dn, as this is generated
         on-the-fly. Instead, sets old_dn in case it was
         missed in the beginning or after create/modify/remove/move
         Also resets cached udm_obj as it may point to somewhere else
-        '''
+        """
         self._udm_obj_searched = False
         self.position = ldap.dn.dn2str(ldap.dn.str2dn(dn)[1:])
         self.old_dn = dn
 
     def validate(self, lo, validate_unlikely_changes=False):
         from ucsschool.lib.models.school import School
+
         self.errors.clear()
         self.warnings.clear()
         for name, attr in iteritems(self._attributes):
@@ -339,10 +354,21 @@ class UCSSchoolHelperAbstractClass(object):
                 self.add_error(name, str(e))
         if self._meta.name_is_unique and not self._meta.allow_school_change:
             if self.exists_outside_school(lo):
-                self.add_error('name', _('The name is already used somewhere outside the school. It may not be taken twice and has to be changed.'))
+                self.add_error(
+                    "name",
+                    _(
+                        "The name is already used somewhere outside the school. It may not be taken twice and has to be changed."
+                    ),
+                )
         if self.supports_school() and self.school:
             if not School.cache(self.school).exists(lo):
-                self.add_error('school', _('The school "%s" does not exist. Please choose an existing one or create it.') % self.school)
+                self.add_error(
+                    "school",
+                    _(
+                        'The school "%s" does not exist. Please choose an existing one or create it.'
+                    )
+                    % self.school,
+                )
         self.validate_roles(lo)
         if validate_unlikely_changes:
             if self.exists(lo):
@@ -358,7 +384,13 @@ class UCSSchoolHelperAbstractClass(object):
                             old_value = getattr(original_self, name)
                             if new_value and old_value:
                                 if new_value != old_value:
-                                    self.add_warning(name, _('The value changed from %(old)s. This seems unlikely.') % {'old': old_value})
+                                    self.add_warning(
+                                        name,
+                                        _(
+                                            "The value changed from %(old)s. This seems unlikely."
+                                        )
+                                        % {"old": old_value},
+                                    )
 
     def validate_roles(self, lo):
         pass
@@ -380,13 +412,14 @@ class UCSSchoolHelperAbstractClass(object):
         if not self.supports_school():
             return False
         from ucsschool.lib.models.school import School
+
         udm_obj = self.get_udm_object(lo)
         if udm_obj is None:
             return False
         return not udm_obj.dn.endswith(School.cache(self.school).dn)
 
     def call_hooks(self, hook_time, func_name):
-        '''Calls run-parts in
+        """Calls run-parts in
         os.path.join(self.hook_path, '%s_%s_%s.d' % (self._meta.hook_path, func_name, hook_time))
         if self.build_hook_line(hook_time, func_name) returns a non-empty string
 
@@ -395,28 +428,32 @@ class UCSSchoolHelperAbstractClass(object):
                 func_name in ['create', 'modify', 'remove']
 
         In the lib, post-hooks are only called if the corresponding function returns True
-        '''
+        """
         # verify path
         hook_path = self._meta.hook_path
-        path = os.path.join(self.hook_path, '%s_%s_%s.d' % (hook_path, func_name, hook_time))
+        path = os.path.join(
+            self.hook_path, "%s_%s_%s.d" % (hook_path, func_name, hook_time)
+        )
         if path in self._empty_hook_paths:
             return None
         if not os.path.isdir(path) or not os.listdir(path):
-            logger.debug('%s not found or empty.', path)
+            logger.debug("%s not found or empty.", path)
             self._empty_hook_paths.add(path)
             return None
-        logger.debug('%s shall be executed', path)
+        logger.debug("%s shall be executed", path)
 
         dn = None
-        if hook_time == 'post':
+        if hook_time == "post":
             dn = self.old_dn
 
-        logger.debug('Building hook line: %r.build_hook_line(%r, %r)', self, hook_time, func_name)
+        logger.debug(
+            "Building hook line: %r.build_hook_line(%r, %r)", self, hook_time, func_name
+        )
         line = self.build_hook_line(hook_time, func_name)
         if not line:
-            logger.debug('No line. Skipping!')
+            logger.debug("No line. Skipping!")
             return None
-        line = line.strip() + '\n'
+        line = line.strip() + "\n"
 
         # create temporary file with data
         with tempfile.NamedTemporaryFile() as tmpfile:
@@ -425,19 +462,19 @@ class UCSSchoolHelperAbstractClass(object):
 
             # invoke hook scripts
             # <script> <temporary file> [<ldap dn>]
-            command = ['run-parts', path, '--arg', tmpfile.name]
+            command = ["run-parts", path, "--arg", tmpfile.name]
             if dn:
-                command.extend(('--arg', dn))
+                command.extend(("--arg", dn))
 
             ret_code = subprocess.call(command)
 
             return ret_code == 0
 
     def build_hook_line(self, hook_time, func_name):
-        '''Must be overridden if the model wants to support hooks.
+        """Must be overridden if the model wants to support hooks.
         Do so by something like:
         return self._build_hook_line(self.attr1, self.attr2, 'constant')
-        '''
+        """
         return None
 
     def _alter_udm_obj(self, udm_obj):
@@ -448,23 +485,23 @@ class UCSSchoolHelperAbstractClass(object):
                     udm_obj[attr.udm_name] = value
 
     def create(self, lo, validate=True):
-        '''
+        """
         Creates a new UDM instance.
         Calls pre-hooks.
         If the object already exists, returns False.
         If the object does not yet exist, creates it, returns True and
         calls post-hooks.
-        '''
-        self.call_hooks('pre', 'create')
+        """
+        self.call_hooks("pre", "create")
         success = self.create_without_hooks(lo, validate)
         if success:
-            self.call_hooks('post', 'create')
+            self.call_hooks("post", "create")
         return success
 
     def create_without_hooks(self, lo, validate):
         if self.exists(lo):
             return False
-        logger.info('Creating %r', self)
+        logger.info("Creating %r", self)
 
         self.create_without_hooks_roles(lo)
 
@@ -473,14 +510,16 @@ class UCSSchoolHelperAbstractClass(object):
             if self.errors:
                 raise ValidationError(self.errors.copy())
 
-        pos = udm_uldap.position(ucr.get('ldap/base'))
+        pos = udm_uldap.position(ucr.get("ldap/base"))
         container = self.position
         if not container:
-            logger.error('%r cannot determine a container. Unable to create!', self)
+            logger.error("%r cannot determine a container. Unable to create!", self)
             return False
         try:
             pos.setDn(container)
-            udm_obj = udm_modules.get(self._meta.udm_module).object(None, lo, pos, superordinate=self.get_superordinate(lo))
+            udm_obj = udm_modules.get(self._meta.udm_module).object(
+                None, lo, pos, superordinate=self.get_superordinate(lo)
+            )
             udm_obj.open()
 
             # here is the real logic
@@ -488,7 +527,7 @@ class UCSSchoolHelperAbstractClass(object):
 
             # get it fresh from the database (needed for udm_obj._exists ...)
             self.set_dn(self.dn)
-            logger.info('%r successfully created', self)
+            logger.info("%r successfully created", self)
             return True
         finally:
             self.invalidate_cache()
@@ -501,31 +540,31 @@ class UCSSchoolHelperAbstractClass(object):
         pass
 
     def do_create(self, udm_obj, lo):
-        '''Actual udm_obj manipulation. Override this if
+        """Actual udm_obj manipulation. Override this if
         you want to further change values of udm_obj, e.g.
         def do_create(self, udm_obj, lo):
                 udm_obj['used_in_ucs_school'] = '1'
                 super(MyModel, self).do_create(udm_obj, lo)
-        '''
+        """
         self._alter_udm_obj(udm_obj)
         udm_obj.create()
 
     def modify(self, lo, validate=True, move_if_necessary=None):
-        '''
+        """
         Modifies an existing UDM instance.
         Calls pre-hooks.
         If the object does not exist, returns False.
         If the object exists, modifies it, returns True and
         calls post-hooks.
-        '''
-        self.call_hooks('pre', 'modify')
+        """
+        self.call_hooks("pre", "modify")
         success = self.modify_without_hooks(lo, validate, move_if_necessary)
         if success:
-            self.call_hooks('post', 'modify')
+            self.call_hooks("post", "modify")
         return success
 
     def modify_without_hooks(self, lo, validate=True, move_if_necessary=None):
-        logger.info('Modifying %r', self)
+        logger.info("Modifying %r", self)
 
         if move_if_necessary is None:
             move_if_necessary = self._meta.allow_school_change
@@ -539,7 +578,7 @@ class UCSSchoolHelperAbstractClass(object):
 
         udm_obj = self.get_udm_object(lo)
         if not udm_obj:
-            logger.info('%s does not exist!', self.old_dn)
+            logger.info("%s does not exist!", self.old_dn)
             return False
 
         try:
@@ -555,9 +594,9 @@ class UCSSchoolHelperAbstractClass(object):
                     if self.move_without_hooks(lo, udm_obj, force=True):
                         same = False
             if same:
-                logger.info('%r not modified. Nothing changed', self)
+                logger.info("%r not modified. Nothing changed", self)
             else:
-                logger.info('%r successfully modified', self)
+                logger.info("%r successfully modified", self)
             # return not same
             return True
         finally:
@@ -572,34 +611,34 @@ class UCSSchoolHelperAbstractClass(object):
         pass
 
     def do_modify(self, udm_obj, lo):
-        '''Actual udm_obj manipulation. Override this if
+        """Actual udm_obj manipulation. Override this if
         you want to further change values of udm_obj, e.g.
         def do_modify(self, udm_obj, lo):
                 udm_obj['used_in_ucs_school'] = '1'
                 super(MyModel, self).do_modify(udm_obj, lo)
-        '''
+        """
         self._alter_udm_obj(udm_obj)
         udm_obj.modify(ignore_license=1)
 
     def move(self, lo, udm_obj=None, force=False):
-        self.call_hooks('pre', 'move')
+        self.call_hooks("pre", "move")
         success = self.move_without_hooks(lo, udm_obj, force)
         if success:
-            self.call_hooks('post', 'move')
+            self.call_hooks("post", "move")
         return success
 
     def move_without_hooks(self, lo, udm_obj, force=False):
         if udm_obj is None:
             udm_obj = self.get_udm_object(lo)
         if udm_obj is None:
-            logger.warning('No UDM object found to move from (%r)', self)
+            logger.warning("No UDM object found to move from (%r)", self)
             return False
         if self.supports_school() and self.get_school_obj(lo) is None:
-            logger.warn('%r wants to move itself to a not existing school', self)
+            logger.warn("%r wants to move itself to a not existing school", self)
             return False
-        logger.info('Moving %r to %r', udm_obj.dn, self)
+        logger.info("Moving %r to %r", udm_obj.dn, self)
         if udm_obj.dn == self.dn:
-            logger.warning('%r wants to move to its own DN!', self)
+            logger.warning("%r wants to move to its own DN!", self)
             return False
         if force or self._meta.allow_school_change:
             try:
@@ -608,12 +647,17 @@ class UCSSchoolHelperAbstractClass(object):
                 self.invalidate_cache()
             self.set_dn(self.dn)
         else:
-            logger.warning('Would like to move %s to %r. But it is not allowed!', udm_obj.dn, self)
+            logger.warning(
+                "Would like to move %s to %r. But it is not allowed!", udm_obj.dn, self
+            )
             return False
         return True
 
     def do_move(self, udm_obj, lo):
-        old_school, new_school = self.get_school_from_dn(self.old_dn), self.get_school_from_dn(self.dn)
+        old_school, new_school = (
+            self.get_school_from_dn(self.old_dn),
+            self.get_school_from_dn(self.dn),
+        )
         udm_obj.move(self.dn, ignore_license=1)
         if self.supports_school() and old_school and old_school != new_school:
             self.do_school_change(udm_obj, lo, old_school)
@@ -632,35 +676,40 @@ class UCSSchoolHelperAbstractClass(object):
         return self.move(lo, force=True)
 
     def do_school_change(self, udm_obj, lo, old_school):
-        logger.info('Going to move %r from school %r to %r', self.old_dn, old_school, self.school)
+        logger.info(
+            "Going to move %r from school %r to %r",
+            self.old_dn,
+            old_school,
+            self.school,
+        )
 
     def remove(self, lo):
-        '''
+        """
         Removes an existing UDM instance.
         Calls pre-hooks.
         If the object does not exist, returns False.
         If the object exists, removes it, returns True and
         calls post-hooks.
-        '''
-        self.call_hooks('pre', 'remove')
+        """
+        self.call_hooks("pre", "remove")
         success = self.remove_without_hooks(lo)
         if success:
-            self.call_hooks('post', 'remove')
+            self.call_hooks("post", "remove")
         return success
 
     def remove_without_hooks(self, lo):
-        logger.info('Deleting %r', self)
+        logger.info("Deleting %r", self)
         udm_obj = self.get_udm_object(lo)
         if udm_obj:
             try:
                 udm_obj.remove(remove_childs=True)
                 udm_objects.performCleanup(udm_obj)
                 self.set_dn(None)
-                logger.info('%r successfully removed', self)
+                logger.info("%r successfully removed", self)
                 return True
             finally:
                 self.invalidate_cache()
-        logger.info('%r does not exist!', self)
+        logger.info("%r does not exist!", self)
         return False
 
     @classmethod
@@ -669,7 +718,7 @@ class UCSSchoolHelperAbstractClass(object):
             try:
                 name = explode_dn(dn, 1)[0]
             except ldap.DECODING_ERROR:
-                name = ''
+                name = ""
             return cls._meta.ldap_unmap_function([name])
 
     @classmethod
@@ -689,45 +738,56 @@ class UCSSchoolHelperAbstractClass(object):
         return self.create_validation_msg(iteritems(self.warnings))
 
     def create_validation_msg(self, items):
-        validation_msg = ''
+        validation_msg = ""
         for key, msg in items:
             label = self.find_field_label_from_name(key)
-            msg_str = ''
+            msg_str = ""
             for error in msg:
                 msg_str += error
-                if not (error.endswith('!') or error.endswith('.')):
-                    msg_str += '.'
-                msg_str += ' '
-            validation_msg += '%s: %s' % (label, msg_str)
+                if not (error.endswith("!") or error.endswith(".")):
+                    msg_str += "."
+                msg_str += " "
+            validation_msg += "%s: %s" % (label, msg_str)
         return validation_msg[:-1]
 
     def get_udm_object(self, lo):
-        '''Returns the UDM object that corresponds to self.
+        """Returns the UDM object that corresponds to self.
         If self._meta.name_is_unique it searches for any UDM object
         with self.name.
         If not (which is the default) it searches for self.old_dn or self.dn
         Returns None if no object was found. Caches the result, even None
         If you want to re-search, you need to explicitely set
         self._udm_obj_searched = False
-        '''
+        """
         self.init_udm_module(lo)
-        if self._udm_obj_searched is False or (self._udm_obj and self._udm_obj.lo.binddn != lo.binddn):
+        if self._udm_obj_searched is False or (
+            self._udm_obj and self._udm_obj.lo.binddn != lo.binddn
+        ):
             dn = self.old_dn or self.dn
             superordinate = self.get_superordinate(lo)
             if dn is None:
-                logger.debug('Getting %s UDM object: No DN!', self.__class__.__name__)
+                logger.debug("Getting %s UDM object: No DN!", self.__class__.__name__)
                 return
             if self._meta.name_is_unique:
                 if self.name is None:
                     return None
-                udm_name = self._attributes['name'].udm_name
+                udm_name = self._attributes["name"].udm_name
                 name = self.get_name_from_dn(dn)
-                filter_str = '%s=%s' % (udm_name, escape_filter_chars(name))
+                filter_str = "%s=%s" % (udm_name, escape_filter_chars(name))
                 self._udm_obj = self.get_first_udm_obj(lo, filter_str, superordinate)
             else:
-                logger.debug('Getting %s UDM object by dn: %s', self.__class__.__name__, dn)
+                logger.debug(
+                    "Getting %s UDM object by dn: %s", self.__class__.__name__, dn
+                )
                 try:
-                    self._udm_obj = udm_modules.lookup(self._meta.udm_module, None, lo, scope='base', base=dn, superordinate=superordinate)[0]
+                    self._udm_obj = udm_modules.lookup(
+                        self._meta.udm_module,
+                        None,
+                        lo,
+                        scope="base",
+                        base=dn,
+                        superordinate=superordinate,
+                    )[0]
                 except (noObject, IndexError):
                     self._udm_obj = None
                 else:
@@ -737,13 +797,14 @@ class UCSSchoolHelperAbstractClass(object):
 
     def get_school_obj(self, lo):
         from ucsschool.lib.models.school import School
+
         if not self.supports_school():
             return None
         school = School.cache(self.school)
         try:
             return School.from_dn(school.dn, None, lo)
         except noObject:
-            logger.warning('%r does not exist!', school)
+            logger.warning("%r does not exist!", school)
             return None
 
     def get_superordinate(self, lo):
@@ -756,16 +817,19 @@ class UCSSchoolHelperAbstractClass(object):
 
     @classmethod
     def get_container(cls, school):
-        '''raises NotImplementedError by default. Needs to be overridden!
-        '''
-        raise NotImplementedError('%s.get_container()' % (cls.__name__,))
+        """raises NotImplementedError by default. Needs to be overridden!
+        """
+        raise NotImplementedError("%s.get_container()" % (cls.__name__,))
 
     @classmethod
     def get_search_base(cls, school_name):
         from ucsschool.lib.models.school import School
+
         if school_name not in cls._search_base_cache:
             school = School(name=school_name)
-            cls._search_base_cache[school_name] = SchoolSearchBase([school.name], dn=school.dn)
+            cls._search_base_cache[school_name] = SchoolSearchBase(
+                [school.name], dn=school.dn
+            )
         return cls._search_base_cache[school_name]
 
     @classmethod
@@ -777,32 +841,40 @@ class UCSSchoolHelperAbstractClass(object):
         cls._initialized_udm_modules.append(cls._meta.udm_module)
 
     @classmethod
-    def get_all(cls, lo, school, filter_str=None, easy_filter=False, superordinate=None):
-        '''
+    def get_all(
+        cls, lo, school, filter_str=None, easy_filter=False, superordinate=None
+    ):
+        """
         Returns a list of all objects that can be found in cls.get_container() with the
         correct udm_module
         If filter_str is given, all udm properties with include_in_default_search are
         queried for that string (so that it should be the value)
-        '''
+        """
         cls.init_udm_module(lo)
         complete_filter = cls._meta.udm_filter
-        if complete_filter and not complete_filter.startswith('('):
-            complete_filter = '({})'.format(complete_filter)
+        if complete_filter and not complete_filter.startswith("("):
+            complete_filter = "({})".format(complete_filter)
         if easy_filter:
             filter_from_filter_str = cls.build_easy_filter(filter_str)
         else:
             filter_from_filter_str = filter_str
-            if filter_from_filter_str and not filter_from_filter_str.startswith('('):
-                filter_from_filter_str = '({})'.format(filter_from_filter_str)
+            if filter_from_filter_str and not filter_from_filter_str.startswith("("):
+                filter_from_filter_str = "({})".format(filter_from_filter_str)
         if filter_from_filter_str:
             if complete_filter:
-                complete_filter = conjunction('&', [complete_filter, filter_from_filter_str])
+                complete_filter = conjunction(
+                    "&", [complete_filter, filter_from_filter_str]
+                )
             else:
                 complete_filter = filter_from_filter_str
         complete_filter = str(complete_filter)
-        logger.debug('Getting all %s of %s with filter %r', cls.__name__, school, complete_filter)
+        logger.debug(
+            "Getting all %s of %s with filter %r", cls.__name__, school, complete_filter
+        )
         ret = []
-        for udm_obj in cls.lookup(lo, school, complete_filter, superordinate=superordinate):
+        for udm_obj in cls.lookup(
+            lo, school, complete_filter, superordinate=superordinate
+        ):
             udm_obj.open()
             try:
                 ret.append(cls.from_udm_obj(udm_obj, school, lo))
@@ -811,11 +883,24 @@ class UCSSchoolHelperAbstractClass(object):
         return ret
 
     @classmethod
-    def lookup(cls, lo, school, filter_s='', superordinate=None):
+    def lookup(cls, lo, school, filter_s="", superordinate=None):
         try:
-            return udm_modules.lookup(cls._meta.udm_module, None, lo, filter=filter_s, base=cls.get_container(school), scope='sub', superordinate=superordinate)
+            return udm_modules.lookup(
+                cls._meta.udm_module,
+                None,
+                lo,
+                filter=filter_s,
+                base=cls.get_container(school),
+                scope="sub",
+                superordinate=superordinate,
+            )
         except noObject:
-            logger.warning('Error while getting all %s of %s: probably %r does not exist!', cls.__name__, school, cls.get_container(school))
+            logger.warning(
+                "Error while getting all %s of %s: probably %r does not exist!",
+                cls.__name__,
+                school,
+                cls.get_container(school),
+            )
             return []
 
     @classmethod
@@ -831,25 +916,35 @@ class UCSSchoolHelperAbstractClass(object):
     def build_easy_filter(cls, filter_str):
         if filter_str:
             sanitizer = LDAPSearchSanitizer()
-            filter_str = sanitizer.sanitize('filter_str', {'filter_str': filter_str})
+            filter_str = sanitizer.sanitize("filter_str", {"filter_str": filter_str})
             expressions = []
             for key in cls._attrs_for_easy_filter():
                 expressions.append(expression(key, filter_str))
             if expressions:
-                return conjunction('|', expressions)
+                return conjunction("|", expressions)
 
     @classmethod
-    def from_udm_obj(cls, udm_obj, school, lo):  # Design fault. school is part of the DN or the ucsschoolSchool attribute.
-        '''Creates a new instance with attributes of the udm_obj.
+    def from_udm_obj(
+        cls, udm_obj, school, lo
+    ):  # Design fault. school is part of the DN or the ucsschoolSchool attribute.
+        """Creates a new instance with attributes of the udm_obj.
         Uses get_class_for_udm_obj()
-        '''
+        """
         cls.init_udm_module(lo)
         klass = cls.get_class_for_udm_obj(udm_obj, school)
         if klass is None:
-            logger.warning('UDM object %r does not correspond to a Python class in the UCS school lib.', udm_obj.dn)
+            logger.warning(
+                "UDM object %r does not correspond to a Python class in the UCS school lib.",
+                udm_obj.dn,
+            )
             raise UnknownModel(udm_obj.dn, cls)
         if klass is not cls:
-            logger.info('UDM object %s is not %s, but actually %s', udm_obj.dn, cls.__name__, klass.__name__)
+            logger.info(
+                "UDM object %s is not %s, but actually %s",
+                udm_obj.dn,
+                cls.__name__,
+                klass.__name__,
+            )
             if not issubclass(klass, cls):
                 # security!
                 # ExamStudent must not be converted into Teacher/Student/etc.,
@@ -858,13 +953,15 @@ class UCSSchoolHelperAbstractClass(object):
                 raise WrongModel(udm_obj.dn, klass, cls)
             return klass.from_udm_obj(udm_obj, school, lo)
         udm_obj.open()
-        attrs = {'school': cls.get_school_from_dn(udm_obj.dn) or school}  # TODO: is this adjustment okay?
+        attrs = {
+            "school": cls.get_school_from_dn(udm_obj.dn) or school
+        }  # TODO: is this adjustment okay?
         if cls.supports_schools():
-            attrs['schools'] = udm_obj['school']
+            attrs["schools"] = udm_obj["school"]
         for name, attr in iteritems(cls._attributes):
             if attr.udm_name:
                 udm_value = udm_obj[attr.udm_name]
-                if udm_value == '':
+                if udm_value == "":
                     udm_value = None
                 attrs[name] = udm_value
         obj = cls(**deepcopy(attrs))
@@ -875,7 +972,7 @@ class UCSSchoolHelperAbstractClass(object):
 
     @classmethod
     def get_class_for_udm_obj(cls, udm_obj, school):
-        '''Returns cls by default.
+        """Returns cls by default.
         Can be overridden for base classes:
         class User(UCSSchoolHelperAbstractClass):
                 @classmethod
@@ -891,34 +988,47 @@ class UCSSchoolHelperAbstractClass(object):
         If this function returns None for a udm_obj, that obj will not
         yield a new instance in get_all() and from_udm_obj() will return None
         for that udm_obj
-        '''
+        """
         return cls
 
     def __repr__(self):
         dn = self.dn
-        dn = '%r, old_dn=%r' % (dn, self.old_dn) if dn != self.old_dn else repr(dn)
+        dn = "%r, old_dn=%r" % (dn, self.old_dn) if dn != self.old_dn else repr(dn)
         if self.supports_school():
-            return '%s(name=%r, school=%r, dn=%s)' % (self.__class__.__name__, self.name, self.school, dn)
+            return "%s(name=%r, school=%r, dn=%s)" % (
+                self.__class__.__name__,
+                self.name,
+                self.school,
+                dn,
+            )
         else:
-            return '%s(name=%r, dn=%s)' % (self.__class__.__name__, self.name, dn)
+            return "%s(name=%r, dn=%s)" % (self.__class__.__name__, self.name, dn)
 
     def __lt__(self, other):
         return self.name < other.name
 
     @classmethod
     def from_dn(cls, dn, school, lo, superordinate=None):
-        '''Returns a new instance based on the UDM object found at dn
+        """Returns a new instance based on the UDM object found at dn
         raises noObject if the udm_module does not match the dn
         or dn is not found
-        '''
+        """
         cls.init_udm_module(lo)
         if school is None and cls.supports_school():
             school = cls.get_school_from_dn(dn)
             if school is None:
-                logger.warn('Unable to guess school from %r', dn)
+                logger.warn("Unable to guess school from %r", dn)
         try:
-            logger.debug('Looking up %s with dn %r', cls.__name__, dn)
-            udm_obj = udm_modules.lookup(cls._meta.udm_module, None, lo, filter=cls._meta.udm_filter, base=dn, scope='base', superordinate=superordinate)[0]
+            logger.debug("Looking up %s with dn %r", cls.__name__, dn)
+            udm_obj = udm_modules.lookup(
+                cls._meta.udm_module,
+                None,
+                lo,
+                filter=cls._meta.udm_filter,
+                base=dn,
+                scope="base",
+                superordinate=superordinate,
+            )[0]
         except IndexError:
             # happens when cls._meta.udm_module does not "match" the dn
             raise WrongObjectType(dn, cls)
@@ -926,16 +1036,24 @@ class UCSSchoolHelperAbstractClass(object):
 
     @classmethod
     def get_only_udm_obj(cls, lo, filter_str, superordinate=None, base=None):
-        '''Returns the one UDM object of class cls._meta.udm_module that
+        """Returns the one UDM object of class cls._meta.udm_module that
         matches a given filter.
         If more than one is found, a MultipleObjectsError is raised
         If none is found, None is returned
-        '''
+        """
         cls.init_udm_module(lo)
         if cls._meta.udm_filter:
-            filter_str = '(&(%s)(%s))' % (cls._meta.udm_filter, filter_str)
-        logger.debug('Getting %s UDM object by filter: %s', cls.__name__, filter_str)
-        objs = udm_modules.lookup(cls._meta.udm_module, None, lo, scope='sub', base=base or ucr.get('ldap/base'), filter=str(filter_str), superordinate=superordinate)
+            filter_str = "(&(%s)(%s))" % (cls._meta.udm_filter, filter_str)
+        logger.debug("Getting %s UDM object by filter: %s", cls.__name__, filter_str)
+        objs = udm_modules.lookup(
+            cls._meta.udm_module,
+            None,
+            lo,
+            scope="sub",
+            base=base or ucr.get("ldap/base"),
+            filter=str(filter_str),
+            superordinate=superordinate,
+        )
         if len(objs) == 0:
             return None
         if len(objs) > 1:
@@ -946,9 +1064,9 @@ class UCSSchoolHelperAbstractClass(object):
 
     @classmethod
     def get_first_udm_obj(cls, lo, filter_str, superordinate=None):
-        '''Returns the first UDM object of class cls._meta.udm_module that
+        """Returns the first UDM object of class cls._meta.udm_module that
         matches a given filter
-        '''
+        """
         try:
             return cls.get_only_udm_obj(lo, filter_str, superordinate)
         except MultipleObjectsError as exc:
@@ -962,12 +1080,12 @@ class UCSSchoolHelperAbstractClass(object):
         return udm_objects.get_superordinate(module, None, lo, dn)
 
     def to_dict(self):
-        '''Returns a dictionary somewhat representing this instance.
+        """Returns a dictionary somewhat representing this instance.
         This dictionary is usually used when sending the instance to
         a browser as JSON.
         By default the attributes are present as well as the dn and
-        the udm_module.'''
-        ret = {'$dn$': self.dn, 'objectType': self._meta.udm_module}
+        the udm_module."""
+        ret = {"$dn$": self.dn, "objectType": self._meta.udm_module}
         for name, attr in iteritems(self._attributes):
             if not attr.internal:
                 ret[name] = getattr(self, name)
@@ -980,21 +1098,21 @@ class UCSSchoolHelperAbstractClass(object):
         return memo[id_self]
 
     def _map_func_name_to_code(self, func_name):
-        if func_name == 'create':
-            return 'A'
-        elif func_name == 'modify':
-            return 'M'
-        elif func_name == 'remove':
-            return 'D'
-        elif func_name == 'move':
-            return 'MV'
+        if func_name == "create":
+            return "A"
+        elif func_name == "modify":
+            return "M"
+        elif func_name == "remove":
+            return "D"
+        elif func_name == "move":
+            return "MV"
 
     def _build_hook_line(self, *args):
         attrs = []
         for arg in args:
             val = arg
             if arg is None:
-                val = ''
+                val = ""
             if arg is False:
                 val = 0
             if arg is True:
@@ -1011,26 +1129,31 @@ class RoleSupportMixin(object):
 
     `ucsschool_roles = Roles(_('Roles'), aka=['Roles'])`
     """
+
     default_roles = []
     _school_in_name = False
     _school_in_name_prefix = False
 
     def get_schools(self):
-        return set(getattr(self, 'schools', []) + [self.school])
+        return set(getattr(self, "schools", []) + [self.school])
 
     def get_schools_from_udm_obj(self, udm_obj):
         if self._school_in_name:
-            return [udm_obj.info['name']]
+            return [udm_obj.info["name"]]
         elif self._school_in_name_prefix:
             try:
-                return [udm_obj.info['name'].split('-', 1)[0]]
+                return [udm_obj.info["name"].split("-", 1)[0]]
             except KeyError:
                 return []
         else:
             try:
-                return udm_obj.info['school']
+                return udm_obj.info["school"]
             except KeyError as exc:
-                logger.exception('KeyError in RoleSupportMixin.get_schools_from_udm_obj(%r): %s', udm_obj, exc)
+                logger.exception(
+                    "KeyError in RoleSupportMixin.get_schools_from_udm_obj(%r): %s",
+                    udm_obj,
+                    exc,
+                )
                 raise
 
     @property
@@ -1049,38 +1172,49 @@ class RoleSupportMixin(object):
         Take dict from :py:attr:`roles_as_dicts` and write to
         :py:attr:`self.ucsschool_roles`.
         """
-        self.ucsschool_roles = ['{role}:{context_type}:{context}'.format(**role) for role in roles]
+        self.ucsschool_roles = [
+            "{role}:{context_type}:{context}".format(**role) for role in roles
+        ]
 
     def do_move_roles(self, udm_obj, lo, old_school, new_school):
         old_roles = list(self.ucsschool_roles)
         # remove all roles of old school
-        roles = [role for role in self.roles_as_dicts if role['context'] != old_school]
+        roles = [role for role in self.roles_as_dicts if role["context"] != old_school]
         # only add role(s) if object has no roles in new school
-        if all(role['context'] != new_school for role in roles):
+        if all(role["context"] != new_school for role in roles):
             # add only role(s) of current Python class in new school
-            roles.extend([{'context': new_school, 'context_type': 'school', 'role': role} for role in self.default_roles])
+            roles.extend(
+                [
+                    {"context": new_school, "context_type": "school", "role": role}
+                    for role in self.default_roles
+                ]
+            )
         self.roles_as_dicts = roles
         if old_roles != self.ucsschool_roles:
-            logger.info('Updating roles: %r -> %r...', old_roles, self.ucsschool_roles)
+            logger.info("Updating roles: %r -> %r...", old_roles, self.ucsschool_roles)
             # cannot use do_modify() here, as it would delete the old object
-            lo.modify(self.dn, [('ucsschoolRole', old_roles, self.ucsschool_roles)])
+            lo.modify(self.dn, [("ucsschoolRole", old_roles, self.ucsschool_roles)])
 
     def validate_roles(self, lo):
         # for now different roles in different schools are not supported
         schools = self.get_schools()
         for role in self.roles_as_dicts:
-            if role['context_type'] != 'school':
+            if role["context_type"] != "school":
                 # check only context_type == 'school' for now
                 continue
-            if self.default_roles and role['role'] not in self.default_roles:
+            if self.default_roles and role["role"] not in self.default_roles:
                 self.add_error(
-                        'ucsschool_roles',
-                        _('Role {role}:{context_type}:{context} is not supported for {dn}.').format(dn=self.dn, **role)
+                    "ucsschool_roles",
+                    _(
+                        "Role {role}:{context_type}:{context} is not supported for {dn}."
+                    ).format(dn=self.dn, **role),
                 )
-            if role['context'] not in schools:
+            if role["context"] not in schools:
                 self.add_error(
-                        'ucsschool_roles',
-                        _('Context {role}:{context_type}:{context} is not allowed for {dn}. Object is not in that school.').format(dn=self.dn, **role)
+                    "ucsschool_roles",
+                    _(
+                        "Context {role}:{context_type}:{context} is not allowed for {dn}. Object is not in that school."
+                    ).format(dn=self.dn, **role),
                 )
 
     def create_without_hooks_roles(self, lo):
@@ -1091,9 +1225,9 @@ class RoleSupportMixin(object):
         if self.default_roles and not self.ucsschool_roles:
             schools = self.get_schools()
             self.ucsschool_roles = [
-                    create_ucsschool_role_string(role, school)
-                    for role in self.default_roles
-                    for school in schools
+                create_ucsschool_role_string(role, school)
+                for role in self.default_roles
+                for school in schools
             ]
 
     def update_ucsschool_roles(self):
@@ -1108,18 +1242,21 @@ class RoleSupportMixin(object):
         object, if it was removed from school(s).
         """
         roles = self.roles_as_dicts
-        old_schools = set(role['context'] for role in roles)
+        old_schools = set(role["context"] for role in roles)
         cur_schools = set(self.get_schools())
         new_schools = cur_schools - old_schools
         removed_schools = old_schools - cur_schools
         for new_school in new_schools:
             # only add role(s) if object has no roles in new school
-            if any(role['context'] == new_school for role in roles):
+            if any(role["context"] == new_school for role in roles):
                 continue
             # add only role(s) of current Python class in new school
-            roles.extend({'context': new_school, 'context_type': 'school', 'role': role} for role in self.default_roles)
+            roles.extend(
+                {"context": new_school, "context_type": "school", "role": role}
+                for role in self.default_roles
+            )
         for role in deepcopy(roles):
-            if role['context_type'] == 'school' and role['context'] in removed_schools:
+            if role["context_type"] == "school" and role["context"] in removed_schools:
                 roles.remove(role)
         if new_schools or removed_schools:
             self.roles_as_dicts = roles

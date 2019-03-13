@@ -37,11 +37,32 @@ from six import iteritems
 from ldap.dn import escape_dn_chars, explode_dn
 from ldap.filter import escape_filter_chars, filter_format
 
-from ucsschool.lib.roles import role_exam_user, role_pupil, role_teacher, role_staff, role_student
+from ucsschool.lib.roles import (
+    role_exam_user,
+    role_pupil,
+    role_teacher,
+    role_staff,
+    role_student,
+)
 from ucsschool.lib.models.utils import create_passwd
 from ucsschool.lib.models.attributes import (
-        Username, Firstname, Lastname, Birthday, Email, Password, Disabled, SchoolClassesAttribute, Schools, Roles)
-from ucsschool.lib.models.base import RoleSupportMixin, UCSSchoolHelperAbstractClass, UnknownModel, WrongModel
+    Username,
+    Firstname,
+    Lastname,
+    Birthday,
+    Email,
+    Password,
+    Disabled,
+    SchoolClassesAttribute,
+    Schools,
+    Roles,
+)
+from ucsschool.lib.models.base import (
+    RoleSupportMixin,
+    UCSSchoolHelperAbstractClass,
+    UnknownModel,
+    WrongModel,
+)
 from ucsschool.lib.models.school import School
 from ucsschool.lib.models.group import Group, SchoolClass, WorkGroup, SchoolGroup
 from ucsschool.lib.models.computer import AnyComputer
@@ -54,19 +75,31 @@ import univention.admin.modules as udm_modules
 
 
 class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
-    name = Username(_('Username'), aka=['Username', 'Benutzername'])
-    schools = Schools(_('Schools'))
-    firstname = Firstname(_('First name'), aka=['First name', 'Vorname'], required=True, unlikely_to_change=True)
-    lastname = Lastname(_('Last name'), aka=['Last name', 'Nachname'], required=True, unlikely_to_change=True)
-    birthday = Birthday(_('Birthday'), aka=['Birthday', 'Geburtstag'], unlikely_to_change=True)
-    email = Email(_('Email'), aka=['Email', 'E-Mail'], unlikely_to_change=True)
-    password = Password(_('Password'), aka=['Password', 'Passwort'])
-    disabled = Disabled(_('Disabled'), aka=['Disabled', 'Gesperrt'])
-    school_classes = SchoolClassesAttribute(_('Class'), aka=['Class', 'Klasse'])
-    ucsschool_roles = Roles(_('Roles'), aka=['Roles'])
+    name = Username(_("Username"), aka=["Username", "Benutzername"])
+    schools = Schools(_("Schools"))
+    firstname = Firstname(
+        _("First name"),
+        aka=["First name", "Vorname"],
+        required=True,
+        unlikely_to_change=True,
+    )
+    lastname = Lastname(
+        _("Last name"),
+        aka=["Last name", "Nachname"],
+        required=True,
+        unlikely_to_change=True,
+    )
+    birthday = Birthday(
+        _("Birthday"), aka=["Birthday", "Geburtstag"], unlikely_to_change=True
+    )
+    email = Email(_("Email"), aka=["Email", "E-Mail"], unlikely_to_change=True)
+    password = Password(_("Password"), aka=["Password", "Passwort"])
+    disabled = Disabled(_("Disabled"), aka=["Disabled", "Gesperrt"])
+    school_classes = SchoolClassesAttribute(_("Class"), aka=["Class", "Klasse"])
+    ucsschool_roles = Roles(_("Roles"), aka=["Roles"])
 
     type_name = None
-    type_filter = '(|(objectClass=ucsschoolTeacher)(objectClass=ucsschoolStaff)(objectClass=ucsschoolStudent))'
+    type_filter = "(|(objectClass=ucsschoolTeacher)(objectClass=ucsschoolStaff)(objectClass=ucsschoolStudent))"
 
     _profile_path_cache = {}
     _samba_home_path_cache = {}
@@ -85,27 +118,28 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     @classmethod
     def shall_create_mail_domain(cls):
-        return ucr.is_true('ucsschool/import/generate/mail/domain')
+        return ucr.is_true("ucsschool/import/generate/mail/domain")
 
     def get_roleshare_home_subdir(self):
         from ucsschool.lib.roleshares import roleshare_home_subdir
+
         return roleshare_home_subdir(self.school, self.roles, ucr)
 
     def get_samba_home_drive(self):
-        return ucr.get('ucsschool/import/set/homedrive')
+        return ucr.get("ucsschool/import/set/homedrive")
 
     def get_samba_netlogon_script_path(self):
-        return ucr.get('ucsschool/import/set/netlogon/script/path')
+        return ucr.get("ucsschool/import/set/netlogon/script/path")
 
     def get_samba_home_path(self, lo):
         school = School.cache(self.school)
         # if defined then use UCR value
-        ucr_variable = ucr.get('ucsschool/import/set/sambahome')
+        ucr_variable = ucr.get("ucsschool/import/set/sambahome")
         if ucr_variable is not None:
-            samba_home_path = r'\\%s' % ucr_variable.strip('\\')
+            samba_home_path = r"\\%s" % ucr_variable.strip("\\")
         # in single server environments the master is always the fileserver
-        elif ucr.is_true('ucsschool/singlemaster', False):
-            samba_home_path = r'\\%s' % ucr.get('hostname')
+        elif ucr.is_true("ucsschool/singlemaster", False):
+            samba_home_path = r"\\%s" % ucr.get("hostname")
         # if there's a cached result then use it
         elif school.dn not in self._samba_home_path_cache:
             samba_home_path = None
@@ -113,92 +147,110 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             school = self.get_school_obj(lo)
             home_share_file_server = school.home_share_file_server
             if home_share_file_server:
-                samba_home_path = r'\\%s' % self.get_name_from_dn(home_share_file_server)
+                samba_home_path = r"\\%s" % self.get_name_from_dn(
+                    home_share_file_server
+                )
             self._samba_home_path_cache[school.dn] = samba_home_path
         else:
             samba_home_path = self._samba_home_path_cache[school.dn]
         if samba_home_path is not None:
-            return r'%s\%s' % (samba_home_path, self.name)
+            return r"%s\%s" % (samba_home_path, self.name)
 
     def get_profile_path(self, lo):
-        ucr_variable = ucr.get('ucsschool/import/set/serverprofile/path')
+        ucr_variable = ucr.get("ucsschool/import/set/serverprofile/path")
         if ucr_variable is not None:
             return ucr_variable
         school = School.cache(self.school)
         if school.dn not in self._profile_path_cache:
-            profile_path = r'%s\%%USERNAME%%\windows-profiles\default'
-            for computer in AnyComputer.get_all(lo, self.school, 'univentionService=Windows Profile Server'):
-                profile_path = profile_path % (r'\\%s' % computer.name)
+            profile_path = r"%s\%%USERNAME%%\windows-profiles\default"
+            for computer in AnyComputer.get_all(
+                lo, self.school, "univentionService=Windows Profile Server"
+            ):
+                profile_path = profile_path % (r"\\%s" % computer.name)
                 break
             else:
-                profile_path = profile_path % '%LOGONSERVER%'
+                profile_path = profile_path % "%LOGONSERVER%"
             self._profile_path_cache[school.dn] = profile_path
         return self._profile_path_cache[school.dn]
 
     def is_student(self, lo):
-        return self.__check_object_class(lo, 'ucsschoolStudent', self._legacy_is_student)
+        return self.__check_object_class(
+            lo, "ucsschoolStudent", self._legacy_is_student
+        )
 
     def is_exam_student(self, lo):
-        return self.__check_object_class(lo, 'ucsschoolExam', self._legacy_is_exam_student)
+        return self.__check_object_class(
+            lo, "ucsschoolExam", self._legacy_is_exam_student
+        )
 
     def is_teacher(self, lo):
-        return self.__check_object_class(lo, 'ucsschoolTeacher', self._legacy_is_teacher)
+        return self.__check_object_class(
+            lo, "ucsschoolTeacher", self._legacy_is_teacher
+        )
 
     def is_staff(self, lo):
-        return self.__check_object_class(lo, 'ucsschoolStaff', self._legacy_is_staff)
+        return self.__check_object_class(lo, "ucsschoolStaff", self._legacy_is_staff)
 
     def is_administrator(self, lo):
-        return self.__check_object_class(lo, 'ucsschoolAdministrator', self._legacy_is_admininstrator)
+        return self.__check_object_class(
+            lo, "ucsschoolAdministrator", self._legacy_is_admininstrator
+        )
 
     @classmethod
     def _legacy_is_student(cls, school, dn):
-        logger.warning('Using deprecated method is_student()')
+        logger.warning("Using deprecated method is_student()")
         return dn.endswith(cls.get_search_base(school).students)
 
     @classmethod
     def _legacy_is_exam_student(cls, school, dn):
-        logger.warning('Using deprecated method is_exam_student()')
+        logger.warning("Using deprecated method is_exam_student()")
         return dn.endswith(cls.get_search_base(school).examUsers)
 
     @classmethod
     def _legacy_is_teacher(cls, school, dn):
-        logger.warning('Using deprecated method is_teacher()')
+        logger.warning("Using deprecated method is_teacher()")
         search_base = cls.get_search_base(school)
-        return dn.endswith(search_base.teachers) or dn.endswith(search_base.teachersAndStaff) or dn.endswith(search_base.admins)
+        return (
+            dn.endswith(search_base.teachers)
+            or dn.endswith(search_base.teachersAndStaff)
+            or dn.endswith(search_base.admins)
+        )
 
     @classmethod
     def _legacy_is_staff(cls, school, dn):
-        logger.warning('Using deprecated method is_staff()')
+        logger.warning("Using deprecated method is_staff()")
         search_base = cls.get_search_base(school)
-        return dn.endswith(search_base.staff) or dn.endswith(search_base.teachersAndStaff)
+        return dn.endswith(search_base.staff) or dn.endswith(
+            search_base.teachersAndStaff
+        )
 
     @classmethod
     def _legacy_is_admininstrator(cls, school, dn):
-        logger.warning('Using deprecated method is_admininstrator()')
+        logger.warning("Using deprecated method is_admininstrator()")
         return dn.endswith(cls.get_search_base(school).admins)
 
     def __check_object_class(self, lo, object_class, fallback):
         obj = self.get_udm_object(lo)
         if not obj:
-            raise noObject('Could not read %r' % (self.dn,))
-        if 'ucsschoolSchool' in obj.oldattr:
-            return object_class in obj.oldattr.get('objectClass', [])
+            raise noObject("Could not read %r" % (self.dn,))
+        if "ucsschoolSchool" in obj.oldattr:
+            return object_class in obj.oldattr.get("objectClass", [])
         return fallback(self.school, self.dn)
 
     @classmethod
     def get_class_for_udm_obj(cls, udm_obj, school):
-        ocs = set(udm_obj.oldattr.get('objectClass', []))
-        if ocs >= set(['ucsschoolTeacher', 'ucsschoolStaff']):
+        ocs = set(udm_obj.oldattr.get("objectClass", []))
+        if ocs >= set(["ucsschoolTeacher", "ucsschoolStaff"]):
             return TeachersAndStaff
-        if ocs >= set(['ucsschoolExam', 'ucsschoolStudent']):
+        if ocs >= set(["ucsschoolExam", "ucsschoolStudent"]):
             return ExamStudent
-        if 'ucsschoolTeacher' in ocs:
+        if "ucsschoolTeacher" in ocs:
             return Teacher
-        if 'ucsschoolStaff' in ocs:
+        if "ucsschoolStaff" in ocs:
             return Staff
-        if 'ucsschoolStudent' in ocs:
+        if "ucsschoolStudent" in ocs:
             return Student
-        if 'ucsschoolAdministrator' in ocs:
+        if "ucsschoolAdministrator" in ocs:
             return Teacher  # we have no class for a school administrator
 
         # legacy DN based checks
@@ -229,32 +281,32 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         self.create_mail_domain(lo)
         password_created = False
         if not self.password:
-            logger.debug('No password given. Generating random one')
+            logger.debug("No password given. Generating random one")
             old_password = self.password  # None or ''
             self.password = create_passwd(dn=self.dn)
             password_created = True
-        udm_obj['primaryGroup'] = self.primary_group_dn(lo)
-        udm_obj['groups'] = self.groups_used(lo)
+        udm_obj["primaryGroup"] = self.primary_group_dn(lo)
+        udm_obj["groups"] = self.groups_used(lo)
         subdir = self.get_roleshare_home_subdir()
-        udm_obj['unixhome'] = '/home/' + os.path.join(subdir, self.name)
-        udm_obj['overridePWHistory'] = '1'
-        udm_obj['overridePWLength'] = '1'
+        udm_obj["unixhome"] = "/home/" + os.path.join(subdir, self.name)
+        udm_obj["overridePWHistory"] = "1"
+        udm_obj["overridePWLength"] = "1"
         if self.disabled is None:
-            udm_obj['disabled'] = '0'
-        if 'mailbox' in udm_obj:
-            udm_obj['mailbox'] = '/var/spool/%s/' % self.name
+            udm_obj["disabled"] = "0"
+        if "mailbox" in udm_obj:
+            udm_obj["mailbox"] = "/var/spool/%s/" % self.name
         samba_home = self.get_samba_home_path(lo)
         if samba_home:
-            udm_obj['sambahome'] = samba_home
+            udm_obj["sambahome"] = samba_home
         profile_path = self.get_profile_path(lo)
         if profile_path:
-            udm_obj['profilepath'] = profile_path
+            udm_obj["profilepath"] = profile_path
         home_drive = self.get_samba_home_drive()
         if home_drive is not None:
-            udm_obj['homedrive'] = home_drive
+            udm_obj["homedrive"] = home_drive
         script_path = self.get_samba_netlogon_script_path()
         if script_path is not None:
-            udm_obj['scriptpath'] = script_path
+            udm_obj["scriptpath"] = script_path
         success = super(User, self).do_create(udm_obj, lo)
         if password_created:
             # to not show up in host_hooks
@@ -265,84 +317,89 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         self.create_mail_domain(lo)
         self.password = self.password or None
 
-        removed_schools = set(udm_obj['school']) - set(self.schools)
+        removed_schools = set(udm_obj["school"]) - set(self.schools)
         if removed_schools:
             # change self.schools back, so schools can be removed by remove_from_school()
-            self.schools = udm_obj['school']
+            self.schools = udm_obj["school"]
         for removed_school in removed_schools:
-            logger.info('Removing %r from school %r...', self, removed_school)
+            logger.info("Removing %r from school %r...", self, removed_school)
             if not self.remove_from_school(removed_school, lo):
-                logger.error('Error removing %r from school %r.', self, removed_school)
+                logger.error("Error removing %r from school %r.", self, removed_school)
                 return False
 
         # remove SchoolClasses the user is not part of anymore
         # ignore all others (global groups, $OU-groups and workgroups)
         mandatory_groups = self.groups_used(lo)
-        for group_dn in [dn for dn in udm_obj['groups'] if dn not in mandatory_groups]:
+        for group_dn in [dn for dn in udm_obj["groups"] if dn not in mandatory_groups]:
             try:
                 school_class = SchoolClass.from_dn(group_dn, None, lo)
             except noObject:
                 continue
             classes = self.school_classes.get(school_class.school, [])
-            if school_class.name not in classes and school_class.get_relative_name() not in classes:
-                logger.debug('Removing %r from SchoolClass %r.', self, group_dn)
-                udm_obj['groups'].remove(group_dn)
+            if (
+                school_class.name not in classes
+                and school_class.get_relative_name() not in classes
+            ):
+                logger.debug("Removing %r from SchoolClass %r.", self, group_dn)
+                udm_obj["groups"].remove(group_dn)
 
         # make sure user is in all mandatory groups and school classes
-        current_groups = set(grp_dn.lower() for grp_dn in udm_obj['groups'])
-        groups_to_add = filter(lambda dn: dn.lower() not in current_groups, mandatory_groups)
+        current_groups = set(grp_dn.lower() for grp_dn in udm_obj["groups"])
+        groups_to_add = filter(
+            lambda dn: dn.lower() not in current_groups, mandatory_groups
+        )
         # [dn for dn in mandatory_groups if dn.lower() not in current_groups]
         if groups_to_add:
-            logger.debug('Adding %r to groups %r.', self, groups_to_add)
-            udm_obj['groups'].extend(groups_to_add)
+            logger.debug("Adding %r to groups %r.", self, groups_to_add)
+            udm_obj["groups"].extend(groups_to_add)
         return super(User, self).do_modify(udm_obj, lo)
 
     def do_school_change(self, udm_obj, lo, old_school):
         super(User, self).do_school_change(udm_obj, lo, old_school)
         school = self.school
 
-        logger.info('User is part of the following groups: %r', udm_obj['groups'])
+        logger.info("User is part of the following groups: %r", udm_obj["groups"])
         self.remove_from_groups_of_school(old_school, lo)
         self._udm_obj_searched = False
         self.school_classes.pop(old_school, None)
         udm_obj = self.get_udm_object(lo)
-        udm_obj['primaryGroup'] = self.primary_group_dn(lo)
-        groups = set(udm_obj['groups'])
+        udm_obj["primaryGroup"] = self.primary_group_dn(lo)
+        groups = set(udm_obj["groups"])
         at_least_groups = set(self.groups_used(lo))
         if (groups | at_least_groups) != groups:
-            udm_obj['groups'] = list(groups | at_least_groups)
+            udm_obj["groups"] = list(groups | at_least_groups)
         subdir = self.get_roleshare_home_subdir()
-        udm_obj['unixhome'] = '/home/' + os.path.join(subdir, self.name)
+        udm_obj["unixhome"] = "/home/" + os.path.join(subdir, self.name)
         samba_home = self.get_samba_home_path(lo)
         if samba_home:
-            udm_obj['sambahome'] = samba_home
+            udm_obj["sambahome"] = samba_home
         profile_path = self.get_profile_path(lo)
         if profile_path:
-            udm_obj['profilepath'] = profile_path
+            udm_obj["profilepath"] = profile_path
         home_drive = self.get_samba_home_drive()
         if home_drive is not None:
-            udm_obj['homedrive'] = home_drive
+            udm_obj["homedrive"] = home_drive
         script_path = self.get_samba_netlogon_script_path()
         if script_path is not None:
-            udm_obj['scriptpath'] = script_path
-        if udm_obj['departmentNumber'] == old_school:
-            udm_obj['departmentNumber'] = school
-        if school not in udm_obj['school']:
-            udm_obj['school'].append(school)
-        if old_school in udm_obj['school']:
-            udm_obj['school'].remove(old_school)
+            udm_obj["scriptpath"] = script_path
+        if udm_obj["departmentNumber"] == old_school:
+            udm_obj["departmentNumber"] = school
+        if school not in udm_obj["school"]:
+            udm_obj["school"].append(school)
+        if old_school in udm_obj["school"]:
+            udm_obj["school"].remove(old_school)
         udm_obj.modify(ignore_license=True)
 
     def _alter_udm_obj(self, udm_obj):
         if self.email is not None:
-            udm_obj['e-mail'] = self.email
-        udm_obj['departmentNumber'] = self.school
+            udm_obj["e-mail"] = self.email
+        udm_obj["departmentNumber"] = self.school
         ret = super(User, self)._alter_udm_obj(udm_obj)
         return ret
 
     def get_mail_domain(self):
         if self.email:
-            domain_name = self.email.split('@')[-1]
+            domain_name = self.email.split("@")[-1]
             return MailDomain.cache(domain_name)
 
     def create_mail_domain(self, lo):
@@ -351,7 +408,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             if self.shall_create_mail_domain():
                 mail_domain.create(lo)
             else:
-                logger.warning('Not allowed to create %r.', mail_domain)
+                logger.warning("Not allowed to create %r.", mail_domain)
 
     def set_default_options(self, udm_obj):
         for option in self.get_default_options():
@@ -361,7 +418,11 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     @classmethod
     def get_default_options(cls):
         options = set()
-        for kls in cls.__bases__:  # u-s-import uses multiple inheritance, we have to cover all parents
+        for (
+            kls
+        ) in (
+            cls.__bases__
+        ):  # u-s-import uses multiple inheritance, we have to cover all parents
             try:
                 options.update(kls.get_default_options())
             except AttributeError:
@@ -383,47 +444,78 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             udm_obj = None
         except WrongModel as exc:
             udm_obj = None
-            self.add_error('name', _('It is not supported to change the role of a user. %(old_role)s %(name)s cannot become a %(new_role)s.') % {
-                    'old_role': exc.model.type_name,
-                    'name': self.name,
-                    'new_role': self.type_name
-            })
+            self.add_error(
+                "name",
+                _(
+                    "It is not supported to change the role of a user. %(old_role)s %(name)s cannot become a %(new_role)s."
+                )
+                % {
+                    "old_role": exc.model.type_name,
+                    "name": self.name,
+                    "new_role": self.type_name,
+                },
+            )
         if udm_obj:
             original_class = self.get_class_for_udm_obj(udm_obj, self.school)
             if original_class is not self.__class__:
-                self.add_error('name', _('It is not supported to change the role of a user. %(old_role)s %(name)s cannot become a %(new_role)s.') % {
-                        'old_role': original_class.type_name,
-                        'name': self.name,
-                        'new_role': self.type_name
-                })
+                self.add_error(
+                    "name",
+                    _(
+                        "It is not supported to change the role of a user. %(old_role)s %(name)s cannot become a %(new_role)s."
+                    )
+                    % {
+                        "old_role": original_class.type_name,
+                        "name": self.name,
+                        "new_role": self.type_name,
+                    },
+                )
         if self.email:
-            name, email = escape_filter_chars(self.name), escape_filter_chars(self.email)
-            if self.get_first_udm_obj(lo, '&(!(uid=%s))(mailPrimaryAddress=%s)' % (name, email)):
-                self.add_error('email', _('The email address is already taken by another user. Please change the email address.'))
+            name, email = (
+                escape_filter_chars(self.name),
+                escape_filter_chars(self.email),
+            )
+            if self.get_first_udm_obj(
+                lo, "&(!(uid=%s))(mailPrimaryAddress=%s)" % (name, email)
+            ):
+                self.add_error(
+                    "email",
+                    _(
+                        "The email address is already taken by another user. Please change the email address."
+                    ),
+                )
             # mail_domain = self.get_mail_domain(lo)
             # if not mail_domain.exists(lo) and not self.shall_create_mail_domain():
             # 	self.add_error('email', _('The mail domain is unknown. Please change the email address or create the mail domain "%s" using the Univention Directory Manager.') % mail_domain.name)
 
         if not isinstance(self.school_classes, Mapping):
-            self.add_error('school_classes', _(
-                    "Type of 'school_classes' is {type!r}, but must be dictionary.").format(type=type(self.school_classes)))
+            self.add_error(
+                "school_classes",
+                _(
+                    "Type of 'school_classes' is {type!r}, but must be dictionary."
+                ).format(type=type(self.school_classes)),
+            )
 
         # verify user is (or will be) in all schools of its school_classes
         for school, classes in iteritems(self.school_classes):
             if school.lower() not in (s.lower() for s in self.schools + [self.school]):
-                self.add_error('school_classes', _("School {school!r} in 'school_classes' is missing in the users 'school(s)' attributes.").format(school=school))
+                self.add_error(
+                    "school_classes",
+                    _(
+                        "School {school!r} in 'school_classes' is missing in the users 'school(s)' attributes."
+                    ).format(school=school),
+                )
 
     def remove_from_school(self, school, lo):
         if not self.exists(lo):
-            logger.warning('User does not exists, not going to remove.')
+            logger.warning("User does not exists, not going to remove.")
             return False
         try:
             (self.schools or [school]).remove(school)
         except ValueError:
-            logger.warning('User is not part of school %r. Not removing.', school)
+            logger.warning("User is not part of school %r. Not removing.", school)
             return False
         if not self.schools:
-            logger.warning('User %r not part of any school, removing it.', self)
+            logger.warning("User %r not part of any school, removing it.", self)
             return self.remove(lo)
         if self.school == school:
             if not self.change_school(self.schools[0], lo):
@@ -435,13 +527,20 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     def remove_from_groups_of_school(self, school, lo):
         for cls in (SchoolClass, WorkGroup, SchoolGroup):
-            for group in cls.get_all(lo, school, filter_format('uniqueMember=%s', (self.dn,))):
+            for group in cls.get_all(
+                lo, school, filter_format("uniqueMember=%s", (self.dn,))
+            ):
                 try:
                     group.users.remove(self.dn)
                 except ValueError:
                     pass
                 else:
-                    logger.info('Removing %r from group %r of school %r.', self.dn, group.dn, school)
+                    logger.info(
+                        "Removing %r from group %r of school %r.",
+                        self.dn,
+                        group.dn,
+                        school,
+                    )
                     group.modify(lo)
 
     def get_group_dn(self, group_name, school):
@@ -453,28 +552,40 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         school_class = SchoolClass.cache(class_name, school)
         if school_class.get_relative_name() == school_class.name:
             if not school_class.exists(lo):
-                class_name = '%s-%s' % (school, class_name)
+                class_name = "%s-%s" % (school, class_name)
                 school_class = SchoolClass.cache(class_name, school)
         return school_class.dn
 
     def primary_group_dn(self, lo):
-        dn = self.get_group_dn('Domain Users %s' % self.school, self.school)
+        dn = self.get_group_dn("Domain Users %s" % self.school, self.school)
         return self.get_or_create_group_udm_object(dn, lo).dn
 
     def get_domain_users_groups(self):
-        return [self.get_group_dn('Domain Users %s' % school, school) for school in self.schools]
+        return [
+            self.get_group_dn("Domain Users %s" % school, school)
+            for school in self.schools
+        ]
 
     def get_students_groups(self):
-        prefix = ucr.get('ucsschool/ldap/default/groupprefix/pupils', 'schueler-')
-        return [self.get_group_dn('%s%s' % (prefix, school), school) for school in self.schools]
+        prefix = ucr.get("ucsschool/ldap/default/groupprefix/pupils", "schueler-")
+        return [
+            self.get_group_dn("%s%s" % (prefix, school), school)
+            for school in self.schools
+        ]
 
     def get_teachers_groups(self):
-        prefix = ucr.get('ucsschool/ldap/default/groupprefix/teachers', 'lehrer-')
-        return [self.get_group_dn('%s%s' % (prefix, school), school) for school in self.schools]
+        prefix = ucr.get("ucsschool/ldap/default/groupprefix/teachers", "lehrer-")
+        return [
+            self.get_group_dn("%s%s" % (prefix, school), school)
+            for school in self.schools
+        ]
 
     def get_staff_groups(self):
-        prefix = ucr.get('ucsschool/ldap/default/groupprefix/staff', 'mitarbeiter-')
-        return [self.get_group_dn('%s%s' % (prefix, school), school) for school in self.schools]
+        prefix = ucr.get("ucsschool/ldap/default/groupprefix/staff", "mitarbeiter-")
+        return [
+            self.get_group_dn("%s%s" % (prefix, school), school)
+            for school in self.schools
+        ]
 
     def groups_used(self, lo):
         group_dns = self.get_specific_groups(lo)
@@ -498,26 +609,28 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         return group
 
     def is_active(self):
-        return self.disabled != '1'
+        return self.disabled != "1"
 
     def build_hook_line(self, hook_time, func_name):
         code = self._map_func_name_to_code(func_name)
         is_teacher = isinstance(self, Teacher) or isinstance(self, TeachersAndStaff)
         is_staff = isinstance(self, Staff) or isinstance(self, TeachersAndStaff)
-        school_class = ','.join(self.school_classes.get(self.school, []))  # legacy format: only classes of the primary school
+        school_class = ",".join(
+            self.school_classes.get(self.school, [])
+        )  # legacy format: only classes of the primary school
         return self._build_hook_line(
-                code,
-                self.name,
-                self.lastname,
-                self.firstname,
-                self.school,
-                school_class,
-                '',  # TODO: rights?
-                self.email,
-                is_teacher,
-                self.is_active(),
-                is_staff,
-                self.password,
+            code,
+            self.name,
+            self.lastname,
+            self.firstname,
+            self.school,
+            school_class,
+            "",  # TODO: rights?
+            self.email,
+            is_teacher,
+            self.is_active(),
+            is_staff,
+            self.password,
         )
 
     def to_dict(self):
@@ -527,14 +640,14 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             display_name.append(self.firstname)
         if self.lastname:
             display_name.append(self.lastname)
-        ret['display_name'] = ' '.join(display_name)
+        ret["display_name"] = " ".join(display_name)
         school_classes = {}
         for school_class in self.get_school_class_objs():
             school_classes.setdefault(school_class.school, []).append(school_class.name)
-        ret['school_classes'] = school_classes
-        ret['type_name'] = self.type_name
-        ret['type'] = self.__class__.__name__
-        ret['type'] = ret['type'][0].lower() + ret['type'][1:]
+        ret["school_classes"] = school_classes
+        ret["type_name"] = self.type_name
+        ret["type"] = self.__class__.__name__
+        ret["type"] = ret["type"][0].lower() + ret["type"][1:]
         return ret
 
     def get_school_class_objs(self):
@@ -547,7 +660,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     @classmethod
     def get_school_classes(cls, udm_obj, obj):
         school_classes = {}
-        for group in udm_obj['groups']:
+        for group in udm_obj["groups"]:
             for school in obj.schools:
                 if Group.is_school_class(school, group):
                     school_class_name = cls.get_name_from_dn(group)
@@ -559,34 +672,53 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         return cls.get_search_base(school).users
 
     @classmethod
-    def lookup(cls, lo, school, filter_s='', superordinate=None):
-        filter_object_type = conjunction('&', [parse(cls.type_filter), parse(filter_format('ucsschoolSchool=%s', [school]))])
+    def lookup(cls, lo, school, filter_s="", superordinate=None):
+        filter_object_type = conjunction(
+            "&",
+            [
+                parse(cls.type_filter),
+                parse(filter_format("ucsschoolSchool=%s", [school])),
+            ],
+        )
         if filter_s:
-            filter_object_type = conjunction('&', [filter_object_type, parse(filter_s)])
-        objects = udm_modules.lookup(cls._meta.udm_module, None, lo, filter=unicode(filter_object_type), scope='sub', superordinate=superordinate)
-        objects.extend(obj for obj in super(User, cls).lookup(lo, school, filter_s, superordinate=superordinate) if not any(obj.dn == x.dn for x in objects))
+            filter_object_type = conjunction("&", [filter_object_type, parse(filter_s)])
+        objects = udm_modules.lookup(
+            cls._meta.udm_module,
+            None,
+            lo,
+            filter=unicode(filter_object_type),
+            scope="sub",
+            superordinate=superordinate,
+        )
+        objects.extend(
+            obj
+            for obj in super(User, cls).lookup(
+                lo, school, filter_s, superordinate=superordinate
+            )
+            if not any(obj.dn == x.dn for x in objects)
+        )
         return objects
 
     class Meta:
-        udm_module = 'users/user'
+        udm_module = "users/user"
         name_is_unique = True
         allow_school_change = False
 
 
 class Student(User):
-    type_name = _('Student')
-    type_filter = '(&(objectClass=ucsschoolStudent)(!(objectClass=ucsschoolExam)))'
+    type_name = _("Student")
+    type_filter = "(&(objectClass=ucsschoolStudent)(!(objectClass=ucsschoolExam)))"
     roles = [role_pupil]
-    default_options = ('ucsschoolStudent',)
+    default_options = ("ucsschoolStudent",)
     default_roles = [role_student]
 
     def do_school_change(self, udm_obj, lo, old_school):
         try:
             exam_user = ExamStudent.from_student_dn(lo, old_school, self.old_dn)
         except noObject as exc:
-            logger.info('No exam user for %r found: %s', self.old_dn, exc)
+            logger.info("No exam user for %r found: %s", self.old_dn, exc)
         else:
-            logger.info('Removing exam user %r', exam_user.dn)
+            logger.info("Removing exam user %r", exam_user.dn)
             exam_user.remove(lo)
 
         super(Student, self).do_school_change(udm_obj, lo, old_school)
@@ -606,11 +738,11 @@ class Student(User):
 
 
 class Teacher(User):
-    type_name = _('Teacher')
-    type_filter = '(&(objectClass=ucsschoolTeacher)(!(objectClass=ucsschoolStaff)))'
+    type_name = _("Teacher")
+    type_filter = "(&(objectClass=ucsschoolTeacher)(!(objectClass=ucsschoolStaff)))"
     roles = [role_teacher]
     default_roles = [role_teacher]
-    default_options = ('ucsschoolTeacher',)
+    default_options = ("ucsschoolTeacher",)
 
     @classmethod
     def get_container(cls, school):
@@ -624,11 +756,11 @@ class Teacher(User):
 
 class Staff(User):
     school_classes = None
-    type_name = _('Staff')
+    type_name = _("Staff")
     roles = [role_staff]
     default_roles = [role_staff]
-    type_filter = '(&(!(objectClass=ucsschoolTeacher))(objectClass=ucsschoolStaff))'
-    default_options = ('ucsschoolStaff',)
+    type_filter = "(&(!(objectClass=ucsschoolTeacher))(objectClass=ucsschoolStaff))"
+    default_options = ("ucsschoolStaff",)
 
     @classmethod
     def get_container(cls, school):
@@ -664,11 +796,11 @@ class Staff(User):
 
 
 class TeachersAndStaff(Teacher):
-    type_name = _('Teacher and Staff')
-    type_filter = '(&(objectClass=ucsschoolStaff)(objectClass=ucsschoolTeacher))'
+    type_name = _("Teacher and Staff")
+    type_filter = "(&(objectClass=ucsschoolStaff)(objectClass=ucsschoolTeacher))"
     roles = [role_teacher, role_staff]
     default_roles = [role_teacher, role_staff]
-    default_options = ('ucsschoolStaff',)
+    default_options = ("ucsschoolStaff",)
 
     @classmethod
     def get_container(cls, school):
@@ -681,10 +813,10 @@ class TeachersAndStaff(Teacher):
 
 
 class ExamStudent(Student):
-    type_name = _('Exam student')
-    type_filter = '(&(objectClass=ucsschoolStudent)(objectClass=ucsschoolExam))'
+    type_name = _("Exam student")
+    type_filter = "(&(objectClass=ucsschoolStudent)(objectClass=ucsschoolExam))"
     default_roles = [role_exam_user]
-    default_options = ('ucsschoolExam',)
+    default_options = ("ucsschoolExam",)
 
     @classmethod
     def get_container(cls, school):
@@ -692,6 +824,10 @@ class ExamStudent(Student):
 
     @classmethod
     def from_student_dn(cls, lo, school, dn):
-        examUserPrefix = ucr.get('ucsschool/ldap/default/userprefix/exam', 'exam-')
-        dn = 'uid=%s%s,%s' % (escape_dn_chars(examUserPrefix), explode_dn(dn, True)[0], cls.get_container(school))
+        examUserPrefix = ucr.get("ucsschool/ldap/default/userprefix/exam", "exam-")
+        dn = "uid=%s%s,%s" % (
+            escape_dn_chars(examUserPrefix),
+            explode_dn(dn, True)[0],
+            cls.get_container(school),
+        )
         return cls.from_dn(dn, school, lo)

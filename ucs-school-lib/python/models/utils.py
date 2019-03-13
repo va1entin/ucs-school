@@ -56,24 +56,24 @@ except ImportError:
 
 
 # "global" translation for ucsschool.lib.models
-_ = Translation('python-ucs-school').translate
+_ = Translation("python-ucs-school").translate
 
 FILE_LOG_FORMATS = dict(
-        DEBUG="%(asctime)s %(levelname)-5s %(module)s.%(funcName)s:%(lineno)d  %(message)s",
-        INFO="%(asctime)s %(levelname)-5s %(message)s"
+    DEBUG="%(asctime)s %(levelname)-5s %(module)s.%(funcName)s:%(lineno)d  %(message)s",
+    INFO="%(asctime)s %(levelname)-5s %(message)s",
 )
 for lvl in ["CRITICAL", "ERROR", "WARN", "WARNING"]:
     FILE_LOG_FORMATS[lvl] = FILE_LOG_FORMATS["INFO"]
 FILE_LOG_FORMATS["NOTSET"] = FILE_LOG_FORMATS["DEBUG"]
 CMDLINE_LOG_FORMATS = dict(
-        DEBUG="%(asctime)s %(levelname)-5s %(module)s.%(funcName)s:%(lineno)d  %(message)s",
-        INFO="%(message)s",
-        WARN="%(levelname)-5s  %(message)s"
+    DEBUG="%(asctime)s %(levelname)-5s %(module)s.%(funcName)s:%(lineno)d  %(message)s",
+    INFO="%(message)s",
+    WARN="%(levelname)-5s  %(message)s",
 )
 for lvl in ["CRITICAL", "ERROR", "WARNING"]:
     CMDLINE_LOG_FORMATS[lvl] = CMDLINE_LOG_FORMATS["WARN"]
 CMDLINE_LOG_FORMATS["NOTSET"] = CMDLINE_LOG_FORMATS["DEBUG"]
-LOG_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+LOG_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 _handler_cache = dict()
 _module_handler = None
@@ -90,35 +90,41 @@ logger = logging.getLogger("ucsschool")
 logger.setLevel(logging.DEBUG)
 
 
-def _remove_password_from_log_record(record):  # type: (logging.LogRecord) -> logging.LogRecord
+def _remove_password_from_log_record(
+    record
+):  # type: (logging.LogRecord) -> logging.LogRecord
     for index, arg in enumerate(record.args):
-        if isinstance(arg, collections.Mapping) and isinstance(arg.get('password'), string_types):
+        if isinstance(arg, collections.Mapping) and isinstance(
+            arg.get("password"), string_types
+        ):
             # don't change original record arguments as it would change the objects being logged
             args = copy.deepcopy(record.args)
-            args[index]['password'] = '*' * 8
+            args[index]["password"] = "*" * 8
             record.args = args
     return record
 
 
 class UniFileHandler(TimedRotatingFileHandler):
     def __init__(
-                    self,
-                    filename,  # type: AnyStr
-                    when='h',  # type: Optional[AnyStr]
-                    interval=1,  # type: Optional[int]
-                    backupCount=0,  # type: Optional[int]
-                    encoding=None,  # type: Optional[AnyStr]
-                    delay=False,  # type: Optional[bool]
-                    utc=False,  # type: Optional[bool]
-                    fuid=None,  # type: Optional[int]
-                    fgid=None,  # type: Optional[int]
-                    fmode=None  # type: Optional[int]
+        self,
+        filename,  # type: AnyStr
+        when="h",  # type: Optional[AnyStr]
+        interval=1,  # type: Optional[int]
+        backupCount=0,  # type: Optional[int]
+        encoding=None,  # type: Optional[AnyStr]
+        delay=False,  # type: Optional[bool]
+        utc=False,  # type: Optional[bool]
+        fuid=None,  # type: Optional[int]
+        fgid=None,  # type: Optional[int]
+        fmode=None,  # type: Optional[int]
     ):
         # type: (...) -> None
         self._fuid = fuid or os.geteuid()
         self._fgid = fgid or os.getegid()
         self._fmode = fmode or 0o600
-        super(UniFileHandler, self).__init__(filename, when, interval, backupCount, encoding, delay, utc)
+        super(UniFileHandler, self).__init__(
+            filename, when, interval, backupCount, encoding, delay, utc
+        )
 
     def _open(self):
         """set file permissions on log file"""
@@ -138,11 +144,11 @@ class UniFileHandler(TimedRotatingFileHandler):
 
 class UniStreamHandler(logging.StreamHandler):
     def __init__(
-                    self,
-                    stream=None,  # type: file
-                    fuid=None,  # type: Optional[int]
-                    fgid=None,  # type: Optional[int]
-                    fmode=None  # type: Optional[int]
+        self,
+        stream=None,  # type: file
+        fuid=None,  # type: Optional[int]
+        fgid=None,  # type: Optional[int]
+        fmode=None,  # type: Optional[int]
     ):
         # type: (...) -> None
         # ignore fuid, fgid, fmode
@@ -156,14 +162,15 @@ class UniStreamHandler(logging.StreamHandler):
 
 class ModuleHandler(logging.Handler):
     """Adapter: use Python logging but emit through univention debug"""
+
     LOGGING_TO_UDEBUG = dict(
-            CRITICAL=ud.ERROR,
-            ERROR=ud.ERROR,
-            WARN=ud.WARN,
-            WARNING=ud.WARN,
-            INFO=ud.PROCESS,
-            DEBUG=ud.INFO,
-            NOTSET=ud.INFO
+        CRITICAL=ud.ERROR,
+        ERROR=ud.ERROR,
+        WARN=ud.WARN,
+        WARNING=ud.WARN,
+        INFO=ud.PROCESS,
+        DEBUG=ud.INFO,
+        NOTSET=ud.INFO,
     )
 
     def __init__(self, level=logging.NOTSET, udebug_facility=ud.LISTENER):
@@ -181,7 +188,9 @@ class ModuleHandler(logging.Handler):
         ud.debug(self._udebug_facility, udebug_level, msg)
 
 
-def add_stream_logger_to_schoollib(level="DEBUG", stream=sys.stderr, log_format=None, name=None):
+def add_stream_logger_to_schoollib(
+    level="DEBUG", stream=sys.stderr, log_format=None, name=None
+):
     # type: (Optional[AnyStr], Optional[file], Optional[AnyStr], Optional[AnyStr]) -> logging.Logger
     """
     Outputs all log messages of the models code to a stream (default: "stderr")::
@@ -191,22 +200,28 @@ def add_stream_logger_to_schoollib(level="DEBUG", stream=sys.stderr, log_format=
             # or:
             add_module_logger_to_schoollib(level='ERROR', stream=sys.stdout, log_format='ERROR (or worse): %(message)s')
     """
-    return get_logger(name, level, stream, formatter_kwargs={"fmt": log_format, "datefmt": None})
+    return get_logger(
+        name, level, stream, formatter_kwargs={"fmt": log_format, "datefmt": None}
+    )
 
 
 def add_module_logger_to_schoollib():  # type: () -> logging.Handler
     global _module_handler
     if _module_handler is None:
         module_handler = ModuleHandler(udebug_facility=ud.MODULE)
-        _module_handler = MemoryHandler(-1, flushLevel=logging.DEBUG, target=module_handler)
+        _module_handler = MemoryHandler(
+            -1, flushLevel=logging.DEBUG, target=module_handler
+        )
         _module_handler.setLevel(logging.DEBUG)
         logger.addHandler(_module_handler)
     else:
-        logger.info('add_module_logger_to_schoollib() should only be called once! Skipping...')
+        logger.info(
+            "add_module_logger_to_schoollib() should only be called once! Skipping..."
+        )
     return _module_handler
 
 
-def create_passwd(length=8, dn=None, specials='$%&*-+=:.?'):
+def create_passwd(length=8, dn=None, specials="$%&*-+=:.?"):
     # type: (Optional[int], Optional[AnyStr], Optional[AnyStr]) -> AnyStr
     assert length > 0
 
@@ -215,17 +230,17 @@ def create_passwd(length=8, dn=None, specials='$%&*-+=:.?'):
         if not _pw_length_cache.get(dn):
             try:
                 results, policies = policy_result(dn)
-                _pw_length_cache[dn] = int(results.get('univentionPWLength', ['8'])[0])
+                _pw_length_cache[dn] = int(results.get("univentionPWLength", ["8"])[0])
             except Exception:
                 pass
         length = _pw_length_cache.get(dn, length)
 
         # get ou pw policy
-        ou = 'ou=' + dn[dn.find('ou=') + 3:]
+        ou = "ou=" + dn[dn.find("ou=") + 3 :]
         if not _pw_length_cache.get(ou):
             try:
                 results, policies = policy_result(ou)
-                _pw_length_cache[ou] = int(results.get('univentionPWLength', ['8'])[0])
+                _pw_length_cache[ou] = int(results.get("univentionPWLength", ["8"])[0])
             except Exception:
                 pass
         length = _pw_length_cache.get(ou, length)
@@ -234,14 +249,14 @@ def create_passwd(length=8, dn=None, specials='$%&*-+=:.?'):
     specials_allowed = length / 5  # 20% specials in a password is enough
     specials = list(specials) if specials else []
     lowercase = list(string.lowercase)
-    for char in ('i', 'l', 'o'):
+    for char in ("i", "l", "o"):
         # remove chars that are easy to mistake for one another
         lowercase.remove(char)
     uppercase = list(string.uppercase)
-    for char in ('I', 'L', 'O'):
+    for char in ("I", "L", "O"):
         uppercase.remove(char)
     digits = list(string.digits)
-    for char in ('0', '1'):
+    for char in ("0", "1"):
         digits.remove(char)
 
     # password will start with a letter (prepended at end of function)
@@ -261,14 +276,16 @@ def create_passwd(length=8, dn=None, specials='$%&*-+=:.?'):
 
     # fill up with random chars (but not more than 20% specials)
     for _x in range(length):
-        char = choice(lowercase + uppercase + digits + (specials if specials_allowed else []))
+        char = choice(
+            lowercase + uppercase + digits + (specials if specials_allowed else [])
+        )
         if char in specials:
             specials_allowed -= 1
         pw.append(char)
 
     shuffle(pw)
     pw = [choice(lowercase + uppercase)] + pw  # start with a letter
-    return ''.join(pw)
+    return "".join(pw)
 
 
 def flatten(list_of_lists):  # type: (List[List[Any]]) -> List[Any]
@@ -284,11 +301,11 @@ def flatten(list_of_lists):  # type: (List[List[Any]]) -> List[Any]
 
 
 def get_logger(
-                name,  # type: AnyStr
-                level="INFO",  # type: Optional[AnyStr]
-                target=sys.stdout,  # type: Optional[file]
-                handler_kwargs=None,  # type: Optional[Dict[AnyStr, Any]]
-                formatter_kwargs=None  # type: Optional[Dict[AnyStr, Any]]
+    name,  # type: AnyStr
+    level="INFO",  # type: Optional[AnyStr]
+    target=sys.stdout,  # type: Optional[file]
+    handler_kwargs=None,  # type: Optional[Dict[AnyStr, Any]]
+    formatter_kwargs=None,  # type: Optional[Dict[AnyStr, Any]]
 ):
     # type: (...) -> logging.Logger
     """
@@ -330,7 +347,10 @@ def get_logger(
     cache_key = "{}-{}".format(name, filename)
     _logger = logging.getLogger("ucsschool.{}".format(name))
 
-    if cache_key in _handler_cache and getattr(logging, level) >= _handler_cache[cache_key].level:
+    if (
+        cache_key in _handler_cache
+        and getattr(logging, level) >= _handler_cache[cache_key].level
+    ):
         return _logger
 
     # The logger objects level must be the lowest of all handlers, or handlers
@@ -347,7 +367,9 @@ def get_logger(
         handler_defaults = dict(cls=UniStreamHandler, stream=target)
         fmt = CMDLINE_LOG_FORMATS[level]
     else:
-        handler_defaults = dict(cls=UniFileHandler, filename=target, when="D", backupCount=10000000)
+        handler_defaults = dict(
+            cls=UniFileHandler, filename=target, when="D", backupCount=10000000
+        )
         fmt = FILE_LOG_FORMATS[level]
     handler_defaults.update(handler_kwargs)
     fmt_kwargs = dict(cls=logging.Formatter, fmt=fmt, datefmt=LOG_DATETIME_FORMAT)
@@ -393,10 +415,12 @@ def stopped_notifier(strict=True):  # type: (Optional[bool]) -> None
     :param bool strict: raise RuntimeError if stopping fails
     :raises RuntimeError: if stopping failed and ``strict=True``
     """
-    service_name = 'univention-directory-notifier'
+    service_name = "univention-directory-notifier"
 
     def _run(args):
-        process = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         stdout, stderr = process.communicate()
         if stdout:
             logger.info(stdout)
@@ -405,7 +429,7 @@ def stopped_notifier(strict=True):  # type: (Optional[bool]) -> None
         return process.returncode == 0
 
     notifier_running = False
-    logger.warning('Stopping %s', service_name)
+    logger.warning("Stopping %s", service_name)
     for process in process_iter():
         try:
             if process.name() == service_name:
@@ -414,26 +438,33 @@ def stopped_notifier(strict=True):  # type: (Optional[bool]) -> None
         except (IOError, NoSuchProcess):
             pass
     if not notifier_running:
-        logger.warning('%s is not running! Skipping', service_name)
+        logger.warning("%s is not running! Skipping", service_name)
     else:
-        if _run(['/etc/init.d/%s' % service_name, 'stop']):
-            logger.info('%s stopped', service_name)
+        if _run(["/etc/init.d/%s" % service_name, "stop"]):
+            logger.info("%s stopped", service_name)
         else:
-            logger.error('Failed to stop %s...', service_name)
+            logger.error("Failed to stop %s...", service_name)
             if strict:
-                raise RuntimeError('Failed to stop %s, but this seems to be very important (strict=True was specified)' % service_name)
+                raise RuntimeError(
+                    "Failed to stop %s, but this seems to be very important (strict=True was specified)"
+                    % service_name
+                )
             else:
-                logger.warning('In the end, will try to start it nonetheless')
+                logger.warning("In the end, will try to start it nonetheless")
     try:
         yield
     finally:
-        logger.warning('Starting %s', service_name)
+        logger.warning("Starting %s", service_name)
         if not notifier_running:
-            logger.warning('Notifier was not running! Skipping')
+            logger.warning("Notifier was not running! Skipping")
         else:
-            start_disabled = ucr.is_false('notifier/autostart', False)
-            command = ['/etc/init.d/%s' % service_name, 'start']
+            start_disabled = ucr.is_false("notifier/autostart", False)
+            command = ["/etc/init.d/%s" % service_name, "start"]
             if not start_disabled and _run(command):
-                logger.info('%s started', service_name)
+                logger.info("%s started", service_name)
             else:
-                logger.error('Failed to start %s... Bad news! Better run "%s" manually!', service_name, ' '.join(command))  # correct: shlex... unnecessary
+                logger.error(
+                    'Failed to start %s... Bad news! Better run "%s" manually!',
+                    service_name,
+                    " ".join(command),
+                )  # correct: shlex... unnecessary
