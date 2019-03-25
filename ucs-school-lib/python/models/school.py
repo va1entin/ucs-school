@@ -67,9 +67,10 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 	default_roles = [role_school]
 	_school_in_name = True
 
-	def __init__(self, name=None, school=None, **kwargs):
+	def __init__(self, name=None, school=None, not_alter_dhcpd_base=False, **kwargs):
 		super(School, self).__init__(name=name, **kwargs)
 		self.display_name = self.display_name or self.name
+		self.not_alter_dhcpd_base = not_alter_dhcpd_base
 
 	def validate(self, lo, validate_unlikely_changes=False):
 		super(School, self).validate(lo, validate_unlikely_changes)
@@ -423,7 +424,7 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 			# In a single server environment the default DHCP container must
 			# be set to the DHCP container in the school ou. Otherwise newly
 			# imported computers have the DHCP objects in the wrong DHCP container
-			if ucr.is_true('ucsschool/singlemaster', False):
+			if ucr.is_true('ucsschool/singlemaster', False) and not self.not_alter_dhcpd_base:
 				if not ucr.get('dhcpd/ldap/base'):
 					handler_set(['dhcpd/ldap/base=cn=dhcp,%s' % (self.dn)])
 					ucr.load()
