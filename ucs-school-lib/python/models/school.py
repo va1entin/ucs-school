@@ -52,6 +52,13 @@ from .computer import AnyComputer, SchoolDCSlave, SchoolDC
 from .utils import flatten, ucr, _
 
 
+def should_alter_dhcpd_base():
+	# In a single server environment the default DHCP container must
+	# be set to the DHCP container in the school ou. Otherwise newly
+	# imported computers have the DHCP objects in the wrong DHCP container
+	return ucr.is_true('ucsschool/singlemaster', False) and not ucr.get('dhcpd/ldap/base')
+
+
 class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 	name = SchoolName(_('School name'))
 	dc_name = DCName(_('DC Name'))
@@ -67,10 +74,10 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 	default_roles = [role_school]
 	_school_in_name = True
 
-	def __init__(self, name=None, school=None, not_alter_dhcpd_base=False, **kwargs):
+	def __init__(self, name=None, school=None, alter_dhcpd_base=should_alter_dhcpd_base(), **kwargs):
 		super(School, self).__init__(name=name, **kwargs)
 		self.display_name = self.display_name or self.name
-		self.not_alter_dhcpd_base = not_alter_dhcpd_base
+		self.alter_dhcpd_base = alter_dhcpd_base
 
 	def validate(self, lo, validate_unlikely_changes=False):
 		super(School, self).validate(lo, validate_unlikely_changes)
@@ -421,13 +428,9 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 				self.logger.warning('Creating %r failed (maybe it already exists?)! Trying to set it up nonetheless', self)
 				self.modify_without_hooks(lo)
 
-			# In a single server environment the default DHCP container must
-			# be set to the DHCP container in the school ou. Otherwise newly
-			# imported computers have the DHCP objects in the wrong DHCP container
-			if ucr.is_true('ucsschool/singlemaster', False) and not self.not_alter_dhcpd_base:
-				if not ucr.get('dhcpd/ldap/base'):
-					handler_set(['dhcpd/ldap/base=cn=dhcp,%s' % (self.dn)])
-					ucr.load()
+			if self.alter_dhcpd_base:
+				handler_set(['dhcpd/ldap/base=cn=dhcp,%s' % (self.dn)])
+				ucr.load()
 
 			self.create_default_containers(lo)
 			self.create_default_groups(lo)
