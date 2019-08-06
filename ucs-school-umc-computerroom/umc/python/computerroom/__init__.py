@@ -50,6 +50,7 @@ from ipaddr import IPAddress
 from ldap.filter import filter_format
 
 from univention.management.console.config import ucr
+from univention.config_registry.frontend import ucr_update
 
 from univention.config_registry import handler_set, handler_unset
 from univention.lib.i18n import Translation
@@ -216,7 +217,7 @@ def reset_room_settings(room, hosts):
 		'samba/share/Marktplatz/hosts/deny',
 		'proxy/filter/room/{}/ip',
 	]
-	update_vars = {}
+	update_vars = {key.format(room): None for key in unset_vars}
 	ucr.load()
 	hosts = set(hosts)
 
@@ -229,9 +230,8 @@ def reset_room_settings(room, hosts):
 		if new:
 			update_vars[variable] = ' '.join(new)
 		else:
-			unset_vars.append(variable)
-	handler_set('{}={}'.format(key, value) for key, value in update_vars.iteritems())
-	handler_unset(var.format(room) for var in unset_vars if ucr.get(var.format(room)))
+			update_vars[variable] = None
+	ucr_update(ucr, update_vars)
 
 
 class IPAddressSanitizer(Sanitizer):
